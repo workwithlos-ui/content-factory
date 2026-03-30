@@ -95,7 +95,8 @@ export default function LibraryPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
           {filtered.map((project) => {
             const avgScore = project.pieces.length > 0 ? (project.pieces.reduce((s, p) => s + p.qualityScore, 0) / project.pieces.length).toFixed(1) : '0';
-            const frameworks = Array.from(new Set(project.pieces.filter(p => p.framework).map(p => FRAMEWORK_LABELS[p.framework as ContentFramework]))).slice(0, 2);
+            const frameworkArr = project.pieces.filter(p => p.framework).map(p => FRAMEWORK_LABELS[p.framework as ContentFramework]);
+            const frameworks = frameworkArr.filter((v, i, a) => a.indexOf(v) === i).slice(0, 2);
             return (
               <Link key={project.id} href={`/content/${project.id}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0"><FileText size={18} className="text-blue-600" /></div>
