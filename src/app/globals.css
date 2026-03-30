@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --border: #e2e8f0;
+    --ring: #4c6ef5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { background: var(--background); color: var(--foreground); font-feature-settings: "rlig" 1, "calt" 1; }
+  ::selection { background: rgba(76, 110, 245, 0.15); color: #1e3a8a; }
+}
+
+@layer components {
+  .btn-primary { @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-brand-700 rounded-xl hover:bg-brand-800 transition-all duration-200 shadow-soft hover:shadow-medium active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-secondary { @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-brand-700 bg-brand-50 rounded-xl hover:bg-brand-100 transition-all duration-200 border border-brand-200; }
+  .btn-ghost { @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200; }
+  .btn-danger { @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold text-white bg-danger-500 rounded-xl hover:bg-danger-600 transition-all duration-200; }
+  .card { @apply bg-white rounded-2xl border border-slate-200/60 shadow-soft; }
+  .card-hover { @apply bg-white rounded-2xl border border-slate-200/60 shadow-soft hover:shadow-medium hover:border-slate-200 transition-all duration-200; }
+  .input-field { @apply w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 placeholder:text-slate-400; }
+  .textarea-field { @apply w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 placeholder:text-slate-400 resize-none; }
+  .select-field { @apply w-full px-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all duration-200 appearance-none; }
+  .label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full; }
+  .badge-brand { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-brand-50 text-brand-700; }
+  .badge-success { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-success-50 text-success-700; }
+  .badge-warning { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-warning-50 text-warning-600; }
+  .badge-danger { @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-danger-50 text-danger-600; }
+  .section-title { @apply text-2xl font-bold text-slate-900 tracking-tight; }
+  .section-subtitle { @apply text-base text-slate-500 mt-1; }
+  .gradient-text { @apply bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 bg-clip-text text-transparent; }
+  .gradient-bg { @apply bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900; }
+  .glass { @apply bg-white/80 backdrop-blur-xl; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { animation: spin 0.6s linear infinite; border: 2px solid #e2e8f0; border-top-color: #4c6ef5; border-radius: 50%; width: 20px; height: 20px; }
