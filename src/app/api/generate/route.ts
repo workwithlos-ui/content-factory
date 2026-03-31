@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 
 const client = new OpenAI();
 
-// ─── Model Selection ─────────────────────────────────────────
 type AIModel = 'gpt-4.1-mini' | 'gemini-2.5-flash';
 
 const PLATFORM_MODEL_MAP: Record<string, AIModel> = {
@@ -12,8 +11,6 @@ const PLATFORM_MODEL_MAP: Record<string, AIModel> = {
   instagram: 'gpt-4.1-mini',
   email: 'gemini-2.5-flash',
   blog: 'gemini-2.5-flash',
-  youtube: 'gpt-4.1-mini',
-  'video-script': 'gpt-4.1-mini',
 };
 
 function resolveModel(platform: string, preference: string): AIModel {
@@ -22,207 +19,321 @@ function resolveModel(platform: string, preference: string): AIModel {
   return PLATFORM_MODEL_MAP[platform] || 'gpt-4.1-mini';
 }
 
-// ─── UTM Generation ──────────────────────────────────────────
+// ─── THE ANTI-SLOP RULEBOOK (12 Rules) ──────────────────────
+const ANTI_SLOP_RULEBOOK = `
+## THE ANTI-SLOP RULEBOOK — MANDATORY FOR ALL CONTENT
+
+You MUST follow every single one of these 12 rules. Violation of ANY rule means the content fails.
+
+RULE 1 — LEAD WITH THE SPECIFIC
+Never start with a general statement. Open with a specific data point, personal story, or contrarian claim. NOT "Content marketing is important." YES "$47,000 in pipeline from a single LinkedIn post. Here's the exact framework."
+
+RULE 2 — USE IRREGULAR RHYTHM
+Vary sentence and paragraph length drastically. Include one-word paragraphs. No perfectly balanced 3-point structures. Mix 3-word sentences with 25-word sentences. Create rhythm that feels human, not templated.
+
+RULE 3 — MAKE CLAIMS, DON'T HEDGE
+Eliminate "potentially," "might," "some people," "it's worth noting," "it's important to remember." Take definitive stances. NOT "This might help improve your results." YES "This doubles your conversion rate."
+
+RULE 4 — NAME NAMES AND NUMBERS
+Use exact dollar amounts, timeframes, named examples. Never generic placeholders. NOT "a successful company" YES "Stripe" or "when we hit $2M ARR."
+
+RULE 5 — INJECT VOICE MARKERS
+Use intentional sentence fragments. Start sentences with "And" or "But." Use abrupt topic shifts. Write like a human who has opinions, not a language model trying to be helpful.
+
+RULE 6 — DISAGREE WITH SOMETHING
+Present a strong opinion that contradicts conventional wisdom. Don't immediately validate the opposing view. Take a side. NOT "While there are many approaches..." YES "Most content advice is wrong. Here's why."
+
+RULE 7 — INCLUDE THE FAILURE
+Include mistakes, pivots, embarrassments that preceded success. Vulnerability is what separates human content from AI slop.
+
+RULE 8 — DELETE THE FIRST PARAGRAPH
+Your first draft's first paragraph is almost always throat-clearing. Delete it. Start with what was your second paragraph.
+
+RULE 9 — USE POWER OPENINGS ONLY
+Allowed opening patterns: (a) A specific number or data point, (b) A bold contrarian claim, (c) A question that challenges assumptions, (d) A short story that starts in the middle of action. BANNED openings: "In today's...", "Have you ever...", "As a...", "When it comes to...", "In the world of..."
+
+RULE 10 — ONE IDEA, FULLY EXPLORED
+Don't cover 7 shallow points. Cover 1 point with extreme depth. Go deeper than any reader expects.
+
+RULE 11 — END WITH TENSION, NOT SUMMARY
+Don't wrap up neatly. Leave the reader with a provocative question, a challenge, or an open loop. NOT "In conclusion, these 5 steps will help you..." YES "The question isn't whether this works. It's whether you'll actually do it."
+
+RULE 12 — THE SLOP LEXICON — NEVER USE THESE WORDS/PHRASES
+BANNED WORDS: crucial, vital, essential, paramount, pivotal, transformative, revolutionary, game-changing, groundbreaking, cutting-edge, innovative, robust, comprehensive, holistic, synergistic, leverage, unlock, harness, foster, cultivate, empower, navigate, delve, landscape, testament, realm, tapestry, multifaceted, nuanced, paradigm, streamline, spearhead, optimize (as buzzword), ecosystem (unless literal), deep dive (as noun), at the end of the day, when it comes to, in today's fast-paced world, it goes without saying, needless to say, in order to, the fact that, it is important to note, it's worth mentioning, as we all know, in the ever-evolving landscape.
+BANNED PATTERNS: Starting with "In today's...", Using em dashes excessively, Three-part parallel structures ("X, Y, and Z" repeated), Ending with "What do you think?", Starting with "Let me tell you..."
+`;
+
+// ─── SLOP DETECTION (for Human Score) ────────────────────────
+const SLOP_WORDS = ['crucial','vital','essential','paramount','pivotal','transformative','revolutionary','game-changing','groundbreaking','cutting-edge','innovative','robust','comprehensive','holistic','synergistic','leverage','unlock','harness','foster','cultivate','empower','navigate','delve','landscape','testament','realm','tapestry','multifaceted','nuanced','paradigm','streamline','spearhead','ecosystem','deep dive'];
+const HEDGE_WORDS = ['potentially','might','perhaps','possibly','it seems','some people','it\'s worth noting','it\'s important to','arguably','in some cases'];
+const BANNED_OPENINGS = ['in today\'s','have you ever','as a ','when it comes to','in the world of','in the ever-evolving','it goes without saying','it\'s no secret'];
+
+function computeHumanScore(content: string) {
+  const lower = content.toLowerCase();
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim().length > 0);
+
+  // Check slop words
+  const slopWordsFound = SLOP_WORDS.filter(w => lower.includes(w));
+
+  // Check opening specificity
+  const firstLine = content.split('\n')[0] || '';
+  const openingIsSpecific = !BANNED_OPENINGS.some(b => firstLine.toLowerCase().startsWith(b)) && (/\d/.test(firstLine) || firstLine.length < 80);
+
+  // Check irregular rhythm
+  const sentenceLengths = sentences.map(s => s.trim().split(/\s+/).length);
+  const avgLen = sentenceLengths.reduce((a, b) => a + b, 0) / (sentenceLengths.length || 1);
+  const variance = sentenceLengths.reduce((sum, len) => sum + Math.pow(len - avgLen, 2), 0) / (sentenceLengths.length || 1);
+  const hasIrregularRhythm = variance > 30;
+
+  // Check hedging
+  const hasHedgingLanguage = HEDGE_WORDS.some(w => lower.includes(w));
+
+  // Check specific details (numbers, $ amounts, names)
+  const hasSpecificDetails = /\$[\d,]+|\d+%|\d+x|\d+ (days|weeks|months|hours|minutes)/.test(content);
+
+  // Calculate score
+  let score = 5;
+  if (slopWordsFound.length === 0) score += 2;
+  else score -= Math.min(slopWordsFound.length, 3);
+  if (openingIsSpecific) score += 1;
+  if (hasIrregularRhythm) score += 1;
+  if (!hasHedgingLanguage) score += 1;
+  if (hasSpecificDetails) score += 1;
+  // Bonus for short paragraphs (mobile-friendly)
+  if (paragraphs.some(p => p.split(/\s+/).length <= 3)) score += 0.5;
+
+  score = Math.max(1, Math.min(10, Math.round(score)));
+
+  const feedback: string[] = [];
+  if (slopWordsFound.length > 0) feedback.push(`Found ${slopWordsFound.length} slop word(s): ${slopWordsFound.slice(0, 5).join(', ')}`);
+  if (!openingIsSpecific) feedback.push('Opening is generic. Lead with a specific data point or contrarian claim.');
+  if (!hasIrregularRhythm) feedback.push('Sentence rhythm is too uniform. Mix short punchy sentences with longer ones.');
+  if (hasHedgingLanguage) feedback.push('Hedging language detected. Make definitive claims instead.');
+  if (!hasSpecificDetails) feedback.push('No specific numbers, dollar amounts, or timeframes found. Add concrete details.');
+
+  return {
+    overall: score,
+    slopWordsFound,
+    openingIsSpecific,
+    hasIrregularRhythm,
+    hasSpecificDetails,
+    hasHedgingLanguage,
+    feedback,
+    autoRewritten: false,
+  };
+}
+
+// ─── CREATOR FRAMEWORK PROMPTS ───────────────────────────────
+const CREATOR_FRAMEWORK_INSTRUCTIONS: Record<string, string> = {
+  'hormozi-hook-retain-reward': `
+FRAMEWORK: HORMOZI HOOK/RETAIN/REWARD
+Structure your content exactly like this:
+1. HOOK (first 1-2 lines): Open with shock value, a bold claim, or an irresistible question. Make it impossible to scroll past. Use a specific number or contrarian statement.
+2. RETAIN (middle 60%): Deliver massive value immediately. No buildup, no fluff. Give them the exact framework, steps, or insight. Make them feel like they're getting a $10,000 consulting session for free.
+3. REWARD (final lines): End with one specific, actionable takeaway they can implement in the next 60 minutes. Not vague advice. A specific action with a specific expected result.`,
+
+  'brunson-epiphany-bridge': `
+FRAMEWORK: BRUNSON EPIPHANY BRIDGE
+Structure your content exactly like this:
+1. BACKSTORY: Start with where you (or someone) were before the breakthrough. Paint the frustration vividly.
+2. THE WALL: Describe the specific moment everything felt stuck. The conventional advice that wasn't working.
+3. THE EPIPHANY: The exact moment of realization. What clicked. Be specific about what changed.
+4. THE PLAN: The framework or system that emerged from the epiphany. Step by step.
+5. THE RESULT: Specific, measurable outcomes. Numbers, timeframes, concrete changes.`,
+
+  'ferriss-recipe': `
+FRAMEWORK: FERRISS RECIPE METHOD
+Structure your content as an intensely practical recipe:
+1. Start with the specific outcome this recipe produces (with numbers if possible).
+2. List exact tools, resources, or prerequisites needed.
+3. Give step-by-step instructions with EXACT details — specific tools, specific settings, specific scripts, specific templates.
+4. Include the "minimum effective dose" — the 20% of effort that produces 80% of results.
+5. Add troubleshooting notes for common failure points.
+Every sentence must be actionable. Zero theory. Zero motivation. Pure tactical execution.`,
+
+  'welsh-paips': `
+FRAMEWORK: WELSH PAIPS
+Structure your content exactly like this:
+1. PROBLEM: Name the specific problem your audience faces. Use their exact language. Make them feel seen.
+2. AGITATE: Twist the knife. Show the consequences of NOT solving this. What it costs them in money, time, reputation.
+3. INTRIGUE: Hint at a solution without revealing it yet. Create an open loop. "There's a framework that fixes this in 14 days."
+4. POSITIVE FUTURE: Paint the vivid picture of life after the solution. Specific outcomes, specific feelings, specific numbers.
+5. SOLUTION: Deliver the framework/system/approach. Make it feel inevitable and achievable.`,
+
+  'koe-authority': `
+FRAMEWORK: KOE AUTHORITY BUILDER
+This post should establish you as a thought leader by combining:
+1. A philosophical insight about your industry (the "why" behind what you do)
+2. A personal growth element (what you learned, how you evolved)
+3. An authoritative claim backed by your experience or data
+The tone should be contemplative but confident. Like someone who has done the work and earned the right to have strong opinions. Mix abstract ideas with concrete examples.`,
+
+  'auto': '',
+};
+
+// ─── PLATFORM-SPECIFIC WRITER PROMPTS ────────────────────────
+const PLATFORM_PROMPTS: Record<string, string> = {
+  linkedin: `You are writing a LinkedIn post. LinkedIn rewards posts that make people stop scrolling, feel something, and engage.
+
+LINKEDIN RULES:
+- First line MUST be a pattern interrupt. A bold claim, a specific number, or a statement that creates cognitive dissonance.
+- Use short paragraphs (1-3 sentences max). White space is your weapon.
+- Include a specific framework, process, or tactical insight the reader can implement today.
+- End with a question that invites meaningful comments. Not "What do you think?" — something specific.
+- NO hashtags in the body. Put 3-5 relevant hashtags as the very last line.
+- NO emojis in the first 3 lines. Max 3 total, only as bullet markers.
+- Length: 150-250 words.`,
+
+  twitter: `You are writing a Twitter/X thread (5-7 tweets).
+
+TWITTER RULES:
+- Tweet 1 (the hook): Must work as a standalone viral tweet. Bold claim + specific insight.
+- Each subsequent tweet delivers ONE specific insight or step. No filler.
+- "1 tweet = 1 idea" rule. Never cram two concepts into one tweet.
+- Second-to-last tweet should be the most valuable tactical insight.
+- Final tweet: Recap key insight in one sentence + CTA (follow, reply, or bookmark).
+- NO hashtags. NO emojis except sparingly. NO "Thread:" or numbering.
+- Each tweet under 280 characters.
+- Separate each tweet with a blank line.`,
+
+  instagram: `You are writing an Instagram caption.
+
+INSTAGRAM RULES:
+- Hook must be relatable and scroll-stopping. Bold statement or specific pain point.
+- Structure: Hook -> Context (2-3 sentences) -> Value (framework/process) -> CTA
+- Use line breaks generously. Mobile-first.
+- Include a before/after element.
+- End with clear CTA: "Save this for later," "Tag someone who needs this," or a specific question.
+- Add 20-25 relevant hashtags at the very end, separated by line breaks.
+- Main caption under 200 words.`,
+
+  email: `You are writing an email newsletter.
+
+EMAIL RULES:
+- SUBJECT LINE: 4-7 words. Create curiosity or state a specific benefit.
+- PREVIEW TEXT: 40-90 characters that complement (not repeat) the subject line.
+- OPENING: First sentence must feel personal. Like a smart friend texting you.
+- BODY: One core idea, explored deeply. Not a link roundup.
+- Include the WHY behind every recommendation.
+- FORMATTING: Short paragraphs (2-3 sentences). Bold key phrases.
+- CTA: One clear call to action. One. Make it specific.
+- LENGTH: 400-600 words.
+- TONE: Conversational but authoritative.
+- Format as:
+  SUBJECT: [subject line]
+  PREVIEW: [preview text]
+
+  [email body]`,
+
+  blog: `You are writing an SEO blog post.
+
+BLOG RULES:
+- Title must include primary keyword and create curiosity.
+- META DESCRIPTION: 150-160 characters with keyword.
+- OPENING: Bold claim or specific problem statement. No "In this article..."
+- STRUCTURE: H2 and H3 headers. Each section delivers standalone value.
+- Step-by-step tactical breakdowns with reasoning.
+- LENGTH: 1500+ words. Be the definitive resource.
+- 4-6 main sections with headers, conclusion with CTA.
+- Format as:
+  TITLE: [title]
+  META: [meta description]
+  KEYWORDS: [3-5 target keywords]
+
+  [blog post with markdown headers]`,
+};
+
+// ─── UTM GENERATION ──────────────────────────────────────────
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 60).replace(/^-|-$/g, '');
 }
 
-const PLATFORM_CONTENT_TYPES: Record<string, string> = {
-  twitter: 'thread', linkedin: 'post', instagram: 'caption',
-  email: 'newsletter', blog: 'article', youtube: 'description', 'video-script': 'script',
-};
-
 function generateUTM(platform: string, topic: string, pieceId: string, baseUrl: string) {
-  const params = {
-    source: platform.replace('-', '_'),
-    medium: PLATFORM_CONTENT_TYPES[platform] || 'content',
-    campaign: slugify(topic),
-    content: pieceId.slice(0, 8),
-  };
+  const params = { source: platform.replace('-', '_'), medium: platform, campaign: slugify(topic), content: pieceId.slice(0, 8) };
   try {
     const url = new URL(baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`);
-    url.searchParams.set('utm_source', params.source);
-    url.searchParams.set('utm_medium', params.medium);
-    url.searchParams.set('utm_campaign', params.campaign);
-    url.searchParams.set('utm_content', params.content);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(`utm_${k}`, v));
     return { params, fullUrl: url.toString() };
   } catch {
     return { params, fullUrl: `${baseUrl}?utm_source=${params.source}&utm_medium=${params.medium}&utm_campaign=${params.campaign}&utm_content=${params.content}` };
   }
 }
 
-// ─── ANTI-FABRICATION RULES (injected into every prompt) ─────
-const ANTI_FABRICATION_RULES = `
-ABSOLUTE RULES (VIOLATION = FAILURE):
-1. NEVER fabricate stories, case studies, testimonials, data, statistics, or customer scenarios. Every example must be based on real frameworks, real principles, or real-world processes that are widely known and verifiable.
-2. NEVER use phrases like "One of my clients..." or "I worked with a company that..." or "Last week, a founder told me..." — these are fabricated scenarios. Instead, use: "Here's a process that works:", "The framework behind this:", "Companies that implement this see..."
-3. NEVER invent specific dollar amounts, percentages, or metrics unless they come from the user's Brand Intelligence Profile. Use directional language instead: "significant increase", "measurable improvement", or reference the user's own data.
-4. ALWAYS provide step-by-step tactical processes with reasoning behind each step. Not "post consistently" but "publish 3x/week on Tuesday, Wednesday, Thursday at 8am because LinkedIn's algorithm prioritizes consistent posting cadence over sporadic volume."
-5. ALWAYS explain WHY something works, not just WHAT to do. Every recommendation needs the reasoning behind it.
-6. NEVER use: em dashes (—), "In today's fast-paced world", "Game-changer", "Unlock your potential", "Leverage", "Synergy", "Let me tell you", "Here's the thing", "At the end of the day", "It's no secret that", "In this day and age".
-7. Write like the best content creators: Tim Ferriss (tactical, step-by-step, data-backed), Alex Hormozi (bold claims backed by math, no-BS directness), Dan Koe (philosophical + practical), Neil Patel (SEO-optimized, actionable how-to). Match the energy to the platform.
-8. Every piece of content must include at least ONE specific, implementable process or framework the reader can use TODAY.
-9. Use the user's actual positioning, pain points, competitive wedge, and objection map from their Brand Intelligence Profile. This is THEIR content, not generic advice.
-10. Prefer real, named frameworks (AIDA, PAS, SPIN, Jobs-to-be-Done, Blue Ocean Strategy, etc.) over made-up ones.`;
+// ─── CONTEXT BUILDERS ────────────────────────────────────────
+function buildVoiceDNAContext(voiceDNA: any): string {
+  if (!voiceDNA?.brandName) return '';
+  return `
+BRAND VOICE DNA:
+- Brand: ${voiceDNA.brandName}
+- Voice: ${voiceDNA.voiceDescriptors || 'Not set'}
+- Style Reference: ${voiceDNA.writingStyleReference || 'Not set'}
+- Phrases to USE: ${(voiceDNA.phrasesTheyUse || []).map((p: string) => `"${p}"`).join(', ') || 'None set'}
+- Phrases to NEVER USE: ${(voiceDNA.phrasesTheyNeverUse || []).map((p: string) => `"${p}"`).join(', ') || 'None set'}
+- Target Audience: ${voiceDNA.targetAudienceDescription || 'Not set'}
+- Audience Pain Points: ${voiceDNA.audiencePainPoints || 'Not set'}`;
+}
 
-// ─── COMMAND 3: Platform-specific writer prompts ─────────────
-const PLATFORM_PROMPTS: Record<string, string> = {
-  linkedin: `You are an elite LinkedIn content strategist. Your posts consistently generate 100K+ impressions because you understand that LinkedIn rewards posts that make people stop scrolling, feel something, and engage.
+function buildExamplesContext(examples: any[]): string {
+  if (!examples || examples.length === 0) return '';
+  const exampleTexts = examples.slice(0, 3).map((ex: any, i: number) =>
+    `EXAMPLE ${i + 1} (${ex.platform || 'general'}, ${ex.contentType || 'content'}):\n${ex.content?.slice(0, 500) || ''}`
+  ).join('\n\n');
+  return `
+CONTENT EXAMPLES (match the tone, structure, and energy of these):
+${exampleTexts}
 
-You are writing for a specific person (Brand Intelligence Profile provided). Write in THEIR voice, not yours.
+IMPORTANT: Study these examples carefully. Match their sentence length patterns, opening style, energy level, and structural choices. These represent the IDEAL output style.`;
+}
 
-${ANTI_FABRICATION_RULES}
+function buildAudienceContext(audience: any): string {
+  if (!audience?.name) return '';
+  return `
+TARGET AUDIENCE PSYCHOGRAPHIC PROFILE:
+- Segment: ${audience.name}
+- Pain Points: ${(audience.painPoints || []).join('; ')}
+- Desires: ${(audience.desires || []).join('; ')}
+- Objections: ${(audience.objections || []).join('; ')}
+- Language They Use: ${(audience.language || []).map((l: string) => `"${l}"`).join(', ')}
+- Failed Solutions: ${(audience.failedSolutions || []).join('; ')}
+- Scroll Stoppers: ${(audience.scrollStoppers || []).join('; ')}
 
-LINKEDIN-SPECIFIC RULES:
-- First line must be a pattern interrupt. A bold claim, a specific number from a real framework, a question that challenges assumptions, or a statement that creates cognitive dissonance. It must work as a standalone hook.
-- Second line must create an open loop. Make them NEED to keep reading.
-- Use short paragraphs (1-3 sentences max). White space is your weapon on LinkedIn.
-- Include a specific, real-world process or framework. Not a made-up story. A real methodology, a proven system, or a step-by-step process based on established business principles.
-- Every claim must have tactical reasoning. Not "post consistently." Instead: "Post 3x/week on a consistent schedule because LinkedIn's algorithm rewards posting cadence over volume, and your audience builds expectations around your rhythm."
-- The middle section must deliver genuine value. Something the reader can implement TODAY. A specific framework, template, script, or process.
-- End with a question that invites comments. Not "What do you think?" Instead: "What's the one step in this process you'd change for your industry?"
-- NO hashtags in the body. Put 3-5 relevant hashtags as the very last line.
-- NO emojis in the first 3 lines. Use them sparingly (max 3 total) and only as bullet markers.
-- Length: 150-250 words.`,
+CRITICAL: Use their EXACT language and pain points in the content. Reference their failed solutions. Address their objections. This content must feel like it was written specifically for this person.`;
+}
 
-  twitter: `You are an elite Twitter/X strategist. You understand that Twitter rewards: strong opinions, specific frameworks, counterintuitive insights, and threads that deliver value in every single tweet.
+function buildBrandContext(brandProfile: any): string {
+  if (!brandProfile) return '';
+  return `
+BRAND INTELLIGENCE PROFILE:
+- Positioning: ${brandProfile.positioningStatement || 'Not set'}
+- Pain Points: ${(brandProfile.corePainPoints || []).join('; ')}
+- Competitive Wedge: ${brandProfile.competitiveWedge || 'Not set'}
+- Transformation: ${brandProfile.transformationArc?.before || 'N/A'} -> ${brandProfile.transformationArc?.after || 'N/A'}
+- Authority Markers: ${(brandProfile.authorityMarkers || []).join('; ')}
+- Content Angles: ${(brandProfile.contentAngles || []).slice(0, 5).join('; ')}
+${brandProfile.voiceDNA ? `
+VOICE DNA (legacy):
+- Style: ${brandProfile.voiceDNA.summary || ''}
+- Energy: ${brandProfile.voiceDNA.energySignature || 'Professional'}
+- Vocabulary: ${brandProfile.voiceDNA.vocabularyLevel || 'Conversational'}
+- Forbidden: ${(brandProfile.voiceDNA.forbiddenPatterns || []).join(', ')}
+- Signature Moves: ${(brandProfile.voiceDNA.signatureMoves || []).join(', ')}` : ''}
+${brandProfile.objectionMap?.length ? `
+OBJECTION MAP:
+${brandProfile.objectionMap.map((o: any) => `- "${o.objection}" -> "${o.reframe}"`).join('\n')}` : ''}`;
+}
 
-Write a 5-7 tweet thread for the user (Brand Intelligence Profile provided).
+// ─── QUALITY CONTROLLER ─────────────────────────────────────
+const QUALITY_CONTROLLER_PROMPT = `You are a content quality auditor. Score this content on 6 dimensions (1-10 each):
 
-${ANTI_FABRICATION_RULES}
-
-TWITTER-SPECIFIC RULES:
-- Tweet 1 (the hook): Must work as a standalone viral tweet. Bold claim + specific framework or process. Not a made-up story. A real insight backed by reasoning.
-- Each subsequent tweet must deliver ONE specific insight, tactic, or step. Not filler.
-- Use the "1 tweet = 1 idea" rule. Never cram two concepts into one tweet.
-- Include at least one tweet with a specific process, framework, or methodology that readers can apply.
-- The second-to-last tweet should be the most valuable, tactical insight in the thread.
-- Final tweet: Recap the key insight in one sentence + CTA (follow, reply, or bookmark).
-- NO hashtags. NO emojis except sparingly. NO "Thread:" or "1/" numbering.
-- Each tweet must be under 280 characters.
-- Write in punchy, direct sentences. Twitter rewards confidence and brevity.
-- Separate each tweet with a blank line.`,
-
-  instagram: `You are an elite Instagram content strategist. You understand that Instagram captions need to be visual-friendly, relatable, and save-worthy.
-
-Write an Instagram caption for the user (Brand Intelligence Profile provided).
-
-${ANTI_FABRICATION_RULES}
-
-INSTAGRAM-SPECIFIC RULES:
-- Hook must be relatable and scroll-stopping. Use a bold statement, a contrarian take, or a specific pain point their audience feels.
-- Structure: Hook -> Context (2-3 sentences) -> Value (the framework or process) -> CTA
-- Use line breaks generously. Instagram is a mobile-first platform.
-- Include a before/after element based on real transformations their product/service enables, drawn from their Brand Intelligence Profile.
-- End with a clear CTA: "Save this for later," "Tag someone who needs this," or a specific question.
-- Add 25-30 researched, relevant hashtags at the very end, separated by several line breaks.
-- Keep the main caption under 200 words. Punchy, not preachy.`,
-
-  email: `You are an elite email copywriter whose newsletters get 45%+ open rates and 12%+ click rates. You understand that email is the most intimate content channel.
-
-Write a newsletter for the user (Brand Intelligence Profile provided).
-
-${ANTI_FABRICATION_RULES}
-
-EMAIL-SPECIFIC RULES:
-- SUBJECT LINE: 4-7 words. Create curiosity or state a specific benefit. Use specificity over vagueness.
-- PREVIEW TEXT: 40-90 characters that complement (not repeat) the subject line.
-- OPENING: First sentence must feel personal. Like a smart friend texting you. Start with an observation, a real industry trend, or a direct statement about a problem the reader faces.
-- BODY: One core idea, explored deeply. Not a link roundup. ONE thing, explained with context, reasoning, and a specific takeaway process.
-- Include the WHY behind every recommendation. Explain the mechanism, not just the action.
-- FORMATTING: Short paragraphs (2-3 sentences). Bold key phrases. Use one or two subheadings if long.
-- CTA: One clear call to action. Not three. One. Make it specific.
-- LENGTH: 400-600 words.
-- TONE: Conversational but authoritative. Like a mentor who respects your time.
-- Format the output as:
-  SUBJECT: [subject line]
-  PREVIEW: [preview text]
-  
-  [email body]`,
-
-  blog: `You are an elite SEO content strategist who has ranked 200+ articles on page 1 of Google. You understand that blog posts need to deliver massive tactical value while being optimized for search.
-
-Write an SEO blog post for the user (Brand Intelligence Profile provided).
-
-${ANTI_FABRICATION_RULES}
-
-BLOG-SPECIFIC RULES:
-- Title must include the primary keyword and create curiosity. Use specific numbers when possible.
-- META DESCRIPTION: 150-160 characters, includes keyword, creates click-worthy curiosity.
-- OPENING: Start with a bold claim or specific problem statement that hooks the reader. No "In this article, we'll explore..."
-- STRUCTURE: Use H2 and H3 headers. Each section must deliver standalone value.
-- Include step-by-step tactical breakdowns with reasoning. Not theory. Specific processes someone can follow with explanations of WHY each step matters.
-- Every claim needs evidence: established frameworks, logical reasoning, or industry-standard methodologies. Never fabricated data.
-- LENGTH: 1500+ words. Comprehensive enough to be the definitive resource on this topic.
-- Include a clear introduction, 4-6 main sections with headers, and a conclusion with CTA.
-- Reference real, named frameworks and methodologies where applicable (e.g., AIDA, PAS, Jobs-to-be-Done, Blue Ocean, etc.)
-- Format with clear markdown headers (## for H2, ### for H3).
-- Format the output as:
-  TITLE: [title]
-  META: [meta description]
-  KEYWORDS: [3-5 target keywords]
-  
-  [blog post body with markdown headers]`,
-
-  youtube: `You are an elite YouTube strategist. You understand that YouTube success starts with the title and thumbnail, not the video itself.
-
-Create a complete YouTube package for the user (Brand Intelligence Profile provided).
-
-${ANTI_FABRICATION_RULES}
-
-YOUTUBE-SPECIFIC RULES:
-- Generate 5 title options ranked by estimated CTR. Each must create curiosity and include specific claims or frameworks.
-- DESCRIPTION: Full description with timestamps, key takeaways, and relevant links. 200+ words.
-- TAGS: 15 relevant tags for YouTube SEO.
-- THUMBNAIL TEXT: 3-5 word overlay text suggestion that creates maximum curiosity.
-- VIDEO OUTLINE: Key talking points with timestamps for a 10-15 minute video. Each section must deliver a specific process or framework.
-- HOOK SCRIPT: The exact first 30 seconds of the video (this determines if people stay). Must open with a bold, specific claim backed by reasoning.
-- Format clearly with labeled sections.`,
-
-  'video-script': `You are an elite video content strategist who creates scripts for founders that get millions of views on short-form platforms. You understand that the first 3 seconds determine everything.
-
-Write video scripts for the user (Brand Intelligence Profile provided).
-
-${ANTI_FABRICATION_RULES}
-
-VIDEO SCRIPT RULES:
-- Create THREE versions: 30-second, 60-second, and 90-second.
-- HOOK (first 3 seconds): Must be a pattern interrupt. Bold claim, surprising framework, or direct challenge. Not a made-up story.
-- Each version must be self-contained with a complete argument backed by reasoning.
-- Include specific visual/action cues in brackets: [look directly at camera], [hold up phone], [point to text overlay]
-- The 30s version: Hook + one key insight + CTA
-- The 60s version: Hook + context + insight + proof + CTA
-- The 90s version: Hook + problem + framework/process + proof + CTA
-- Write conversationally. These are spoken, not read.
-- Keep sentences short and punchy.
-- Label each version clearly: [30-SECOND VERSION], [60-SECOND VERSION], [90-SECOND VERSION]`
-};
-
-// Framework definitions for strategist
-const FRAMEWORK_KEYS = [
-  'pas', 'before-after-bridge', 'contrarian-proof', 'most-people-think',
-  'story-lesson-action', 'data-insight-application', 'question-answer-framework',
-  'myth-busting', 'step-by-step', 'case-study', 'prediction-preparation', 'old-way-new-way'
-];
-
-// COMMAND 4: Quality Controller prompt
-const QUALITY_CONTROLLER_PROMPT = `You are a content quality auditor at a $50M media company. You evaluate content against the standards of elite creators like Tim Ferriss, Alex Hormozi, Dan Koe, and Neil Patel.
-
-Score this content on 6 dimensions (1-10 each):
-
-1. HOOK STRENGTH (25% weight): Does the first line stop the scroll? Is it specific, not generic? Does it create curiosity or cognitive dissonance? Would Tim Ferriss or Alex Hormozi approve of this opening?
-2. SPECIFICITY (20%): Are there real frameworks, real processes, real methodologies? Or is it vague advice anyone could give? Are there specific steps with reasoning? DEDUCT POINTS if the content fabricates stories, fake case studies, or made-up data.
-3. TACTICAL DEPTH (20%): Does it explain WHY, not just WHAT? Is there reasoning behind the recommendations? Could someone implement this immediately with the steps provided? Is there a clear process or framework?
-4. VOICE MATCH (15%): Does it sound like the person whose profile is attached? Check sentence length, vocabulary, energy level, and personality markers.
-5. CTA CLARITY (10%): Is there a clear, specific next step? Not "think about this." A specific action.
-6. PLATFORM OPTIMIZATION (10%): Is it formatted correctly for the platform? Right length? Right structure?
-
-CRITICAL: Score ZERO on Specificity if the content contains fabricated stories ("One of my clients..."), fake data, or made-up testimonials. Real frameworks and processes only.
-
-For any dimension scoring below 8, provide the SPECIFIC fix needed. Not "make it more specific." Give the exact replacement text or addition needed.
+1. HOOK STRENGTH (25%): Does the first line stop the scroll? Is it specific?
+2. SPECIFICITY (20%): Real frameworks, real processes? Or vague advice?
+3. TACTICAL DEPTH (20%): Does it explain WHY, not just WHAT?
+4. VOICE MATCH (15%): Does it sound like a real person with opinions?
+5. CTA CLARITY (10%): Is there a clear, specific next step?
+6. PLATFORM OPTIMIZATION (10%): Formatted correctly for the platform?
 
 IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks.
-
 Return as:
 {
   "hookStrength": number,
@@ -232,91 +343,70 @@ Return as:
   "ctaClarity": number,
   "platformOptimization": number,
   "overall": number,
-  "reasons": ["what's working well - be specific about which frameworks/processes are strong"],
-  "fixes": ["specific fixes for any dimension below 8 - give exact replacement text"]
+  "reasons": ["what's working well"],
+  "fixes": ["specific fixes needed"]
 }`;
-
-function buildBrandContext(brandProfile: any): string {
-  if (!brandProfile) return '';
-  return `
-BRAND INTELLIGENCE PROFILE:
-- Positioning: ${brandProfile.positioningStatement || 'Not set'}
-- Pain Points: ${(brandProfile.corePainPoints || []).join('; ')}
-- Competitive Wedge: ${brandProfile.competitiveWedge || 'Not set'}
-- Transformation: Before: ${brandProfile.transformationArc?.before || 'N/A'} -> After: ${brandProfile.transformationArc?.after || 'N/A'}
-- Authority Markers: ${(brandProfile.authorityMarkers || []).join('; ')}
-- Content Angles: ${(brandProfile.contentAngles || []).slice(0, 5).join('; ')}
-
-VOICE DNA:
-${brandProfile.voiceDNA ? `- Style: ${brandProfile.voiceDNA.summary || ''}
-- Energy: ${brandProfile.voiceDNA.energySignature || 'Professional'}
-- Vocabulary: ${brandProfile.voiceDNA.vocabularyLevel || 'Conversational'}
-- Opening Patterns: ${(brandProfile.voiceDNA.openingPatterns || []).join(', ')}
-- Reasoning Style: ${brandProfile.voiceDNA.reasoningStyle || 'Logical'}
-- Forbidden: ${(brandProfile.voiceDNA.forbiddenPatterns || ['em dashes', 'corporate buzzwords']).join(', ')}
-- Signature Moves: ${(brandProfile.voiceDNA.signatureMoves || []).join(', ')}` : 'No voice DNA available. Write in a professional, authoritative, conversational tone.'}
-
-OBJECTION MAP:
-${(brandProfile.objectionMap || []).map((o: any) => `- "${o.objection}" -> Reframe: "${o.reframe}"`).join('\n') || 'Not available'}
-
-RAW ONBOARDING ANSWERS (use these as the ONLY source of truth for examples and stories):
-${brandProfile.rawAnswers ? Object.entries(brandProfile.rawAnswers).map(([k, v]) => `- ${k}: ${v}`).join('\n') : 'Not available'}`;
-}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { topic, keyPoints, tonePreference, targetAudience, brandProfile, brandIntelligence, platforms, modelPreference, baseUrl } = body;
+    const {
+      topic, keyPoints, platforms, creatorFramework, customFramework,
+      voiceDNA, examples, audienceProfile, brandProfile, brandIntelligence,
+      modelPreference, baseUrl, tonePreference, targetAudience,
+      brandVoiceSummary, businessProfile,
+    } = body;
 
     const profileData = brandIntelligence || brandProfile || {};
-    const brandContext = buildBrandContext(profileData);
     const userModelPref = modelPreference || 'auto';
-    const utmBaseUrl = baseUrl || profileData?.rawAnswers?.websiteUrl || 'https://example.com';
+    const utmBaseUrl = baseUrl || 'https://example.com';
 
-    // STEP 1: COMMAND 2 - Content Strategist
-    const strategistPrompt = `You are a fractional CMO who has scaled 50+ companies from $1M to $10M using organic content. The user wants to create content about a topic. Turn their raw topic into a strategic content brief.
+    // Build full context
+    const voiceDNAContext = buildVoiceDNAContext(voiceDNA);
+    const examplesContext = buildExamplesContext(examples);
+    const audienceContext = buildAudienceContext(audienceProfile);
+    const brandContext = buildBrandContext(profileData);
 
-${ANTI_FABRICATION_RULES}
+    const fullContext = [voiceDNAContext, examplesContext, audienceContext, brandContext].filter(Boolean).join('\n');
 
-${brandContext}
+    // Framework instruction
+    const frameworkKey = creatorFramework || 'auto';
+    const frameworkInstruction = frameworkKey === 'custom' && customFramework
+      ? `\nCUSTOM FRAMEWORK:\n${customFramework}`
+      : CREATOR_FRAMEWORK_INSTRUCTIONS[frameworkKey] || '';
+
+    // STEP 1: Content Strategist
+    const strategistPrompt = `You are an elite content strategist. Turn this topic into a strategic content brief.
+
+${ANTI_SLOP_RULEBOOK}
+
+${fullContext}
 
 TOPIC: ${topic}
 ${keyPoints ? `KEY POINTS: ${keyPoints}` : ''}
 ${targetAudience ? `TARGET AUDIENCE: ${targetAudience}` : ''}
+${tonePreference ? `TONE: ${tonePreference}` : ''}
 
 Determine:
-1. STRATEGIC ANGLE: The specific, ownable angle that aligns with their positioning. Not the obvious take. The take that makes their ideal customer think "finally, someone gets it."
-2. FRAMEWORK SELECTION: For each of the 7 platforms, pick the best framework from: ${FRAMEWORK_KEYS.join(', ')}
-3. EMOTIONAL HOOK: What specific emotion should the opening trigger?
-4. PROOF POINTS: What specific real-world frameworks, methodologies, or processes should be referenced? NO fabricated examples.
-5. PLATFORM PRIORITY: Rank the 7 platforms by how well this topic fits each one.
+1. STRATEGIC ANGLE: The specific, ownable angle. Not the obvious take.
+2. EMOTIONAL HOOK: What emotion should the opening trigger?
+3. PROOF POINTS: Real frameworks, methodologies, or processes to reference.
 
-Platform-framework best fits:
-- Twitter: contrarian-proof, data-insight-application, myth-busting
-- LinkedIn: most-people-think, story-lesson-action, case-study
-- Instagram: before-after-bridge, step-by-step, story-lesson-action
-- Email: pas, story-lesson-action, case-study
-- Blog: step-by-step, data-insight-application, question-answer-framework
-- YouTube: question-answer-framework, prediction-preparation, old-way-new-way
-- Video Scripts: contrarian-proof, story-lesson-action, pas
-
-Return ONLY valid JSON. No markdown code blocks:
+Return ONLY valid JSON:
 {
   "strategicAngle": "string",
   "emotionalHook": "string",
-  "proofPoints": ["real frameworks or methodologies to reference"],
-  "platformFrameworks": {"twitter": "framework-key", "linkedin": "framework-key", "instagram": "framework-key", "email": "framework-key", "blog": "framework-key", "youtube": "framework-key", "video-script": "framework-key"},
-  "platformPriority": ["platform1", "platform2"]
+  "proofPoints": ["real frameworks to reference"]
 }`;
 
     const strategistResponse = await client.chat.completions.create({
       model: 'gpt-4.1-mini',
       messages: [
-        { role: 'system', content: 'You are an elite content strategist. Return ONLY valid JSON. No markdown, no code blocks.' },
+        { role: 'system', content: 'You are an elite content strategist. Return ONLY valid JSON.' },
         { role: 'user', content: strategistPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 1500,
+      max_tokens: 1000,
     });
 
     let brief: any;
@@ -324,53 +414,48 @@ Return ONLY valid JSON. No markdown code blocks:
       const raw = strategistResponse.choices[0]?.message?.content || '{}';
       brief = JSON.parse(raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
     } catch {
-      brief = { strategicAngle: topic, emotionalHook: 'curiosity', proofPoints: [], platformFrameworks: {}, platformPriority: platforms };
+      brief = { strategicAngle: topic, emotionalHook: 'curiosity', proofPoints: [] };
     }
 
-    // STEP 2: Generate content for each platform in parallel with model selection
-    const platformList = platforms || ['linkedin', 'twitter', 'instagram', 'email', 'blog', 'youtube', 'video-script'];
+    // STEP 2: Generate content for each platform
+    const platformList = platforms || ['linkedin', 'twitter', 'email'];
 
     const generationPromises = platformList.map(async (platform: string) => {
-      const writerSystemPrompt = PLATFORM_PROMPTS[platform] || PLATFORM_PROMPTS.linkedin;
-      const framework = brief.platformFrameworks?.[platform] || 'story-lesson-action';
+      const platformPrompt = PLATFORM_PROMPTS[platform] || PLATFORM_PROMPTS.linkedin;
       const model = resolveModel(platform, userModelPref);
 
-      const writerUserPrompt = `${brandContext}
+      const systemPrompt = `${platformPrompt}
+
+${ANTI_SLOP_RULEBOOK}
+${frameworkInstruction}`;
+
+      const userPrompt = `${fullContext}
 
 STRATEGIC BRIEF:
 - Angle: ${brief.strategicAngle}
 - Emotional Hook: ${brief.emotionalHook}
-- Framework to use: ${framework}
-- Proof Points (use ONLY these real references): ${(brief.proofPoints || []).join('; ')}
+- Proof Points: ${(brief.proofPoints || []).join('; ')}
 
 TOPIC: ${topic}
 ${keyPoints ? `KEY POINTS: ${keyPoints}` : ''}
-${tonePreference ? `TONE PREFERENCE: ${tonePreference}` : ''}
 
 CRITICAL REMINDERS:
-- Do NOT fabricate stories, case studies, or data. Use real frameworks and processes only.
-- Do NOT write "One of my clients..." or any fictional scenario. Use "Here's the process:" or "The framework works like this:" instead.
-- Include step-by-step tactical advice with reasoning behind each step.
-- Use the user's actual positioning, pain points, and competitive wedge from their profile above.
-- Every claim needs a WHY. Not just what to do, but why it works.
+- Follow the Anti-Slop Rulebook. Every rule. No exceptions.
+- Lead with something SPECIFIC. A number, a name, a contrarian claim.
+- Vary your sentence rhythm. Mix 3-word sentences with longer ones.
+- No hedging. No "might" or "potentially." Make definitive claims.
+- Use the audience's exact language and pain points from the profile above.
+- End with tension, not a neat summary.
 
-Write the ${platform} content now. Follow this structure:
-1. HOOK: Pattern interrupt (bold claim, contrarian take, specific framework reference, relatable pain from their profile)
-2. CONTEXT: Why this matters now, using their industry and audience context
-3. PROBLEM: Name and agitate the specific problem from their pain points
-4. SOLUTION: Present with tactical reasoning (step-by-step process with WHY each step works)
-5. ACTION: Specific implementable next step the reader can do today
-6. CTA: Platform-appropriate call to action
-
-Write ONLY the content. No meta-commentary. No labels like "HOOK:" or "CTA:" in the output. Just the natural, flowing content.`;
+Write the ${platform} content now. ONLY the content. No meta-commentary. No labels.`;
 
       const writeResponse = await client.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: writerSystemPrompt },
-          { role: 'user', content: writerUserPrompt },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
         ],
-        temperature: 0.75,
+        temperature: 0.8,
         max_tokens: platform === 'blog' ? 4000 : 2000,
       });
 
@@ -381,10 +466,10 @@ Write ONLY the content. No meta-commentary. No labels like "HOOK:" or "CTA:" in 
         model: 'gpt-4.1-mini',
         messages: [
           { role: 'system', content: QUALITY_CONTROLLER_PROMPT },
-          { role: 'user', content: `PLATFORM: ${platform}\nFRAMEWORK USED: ${framework}\n\n${brandContext}\n\nCONTENT TO EVALUATE:\n${content}\n\nScore this content and return JSON only. Remember: score ZERO on Specificity if there are fabricated stories or fake data.` },
+          { role: 'user', content: `PLATFORM: ${platform}\n\nCONTENT:\n${content}\n\nScore this content and return JSON only.` },
         ],
         temperature: 0.3,
-        max_tokens: 800,
+        max_tokens: 600,
       });
 
       let quality: any;
@@ -392,17 +477,20 @@ Write ONLY the content. No meta-commentary. No labels like "HOOK:" or "CTA:" in 
         const qcRaw = qcResponse.choices[0]?.message?.content || '{}';
         quality = JSON.parse(qcRaw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
       } catch {
-        quality = { hookStrength: 8, specificity: 8, tacticalDepth: 8, voiceMatch: 8, ctaClarity: 8, platformOptimization: 8, overall: 8, reasons: ['Content generated successfully'], fixes: [] };
+        quality = { hookStrength: 7, specificity: 7, tacticalDepth: 7, voiceMatch: 7, ctaClarity: 7, platformOptimization: 7, overall: 7, reasons: [], fixes: [] };
       }
 
-      const weightedScore = (
-        (quality.hookStrength || 8) * 0.25 +
-        (quality.specificity || 8) * 0.20 +
-        (quality.tacticalDepth || 8) * 0.20 +
-        (quality.voiceMatch || 8) * 0.15 +
-        (quality.ctaClarity || 8) * 0.10 +
-        (quality.platformOptimization || 8) * 0.10
-      );
+      const weightedScore = Math.round((
+        (quality.hookStrength || 7) * 0.25 +
+        (quality.specificity || 7) * 0.20 +
+        (quality.tacticalDepth || 7) * 0.20 +
+        (quality.voiceMatch || 7) * 0.15 +
+        (quality.ctaClarity || 7) * 0.10 +
+        (quality.platformOptimization || 7) * 0.10
+      ) * 10) / 10;
+
+      // STEP 4: Human Score (anti-slop detection)
+      const humanScore = computeHumanScore(content);
 
       const pieceId = Math.random().toString(36).substring(2, 10);
       const utm = generateUTM(platform, topic, pieceId, utmBaseUrl);
@@ -410,36 +498,28 @@ Write ONLY the content. No meta-commentary. No labels like "HOOK:" or "CTA:" in 
       return {
         platform,
         content,
-        framework,
+        framework: frameworkKey !== 'auto' ? frameworkKey : 'auto-selected',
         model,
-        utmLink: {
-          id: pieceId,
-          platform,
-          baseUrl: utmBaseUrl,
-          utmParams: utm.params,
-          fullUrl: utm.fullUrl,
-        },
-        qualityScore: Math.round(weightedScore * 10) / 10,
+        utmLink: { id: pieceId, platform, baseUrl: utmBaseUrl, utmParams: utm.params, fullUrl: utm.fullUrl },
+        qualityScore: weightedScore,
         qualityBreakdown: {
-          hookStrength: quality.hookStrength || 8,
-          specificity: quality.specificity || 8,
-          tacticalDepth: quality.tacticalDepth || 8,
-          voiceMatch: quality.voiceMatch || 8,
-          ctaClarity: quality.ctaClarity || 8,
-          platformOptimization: quality.platformOptimization || 8,
+          hookStrength: quality.hookStrength || 7,
+          specificity: quality.specificity || 7,
+          tacticalDepth: quality.tacticalDepth || 7,
+          voiceMatch: quality.voiceMatch || 7,
+          ctaClarity: quality.ctaClarity || 7,
+          platformOptimization: quality.platformOptimization || 7,
           reasons: quality.reasons || [],
           fixes: quality.fixes || [],
         },
-        aiReasoning: `Model: ${model === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' : 'GPT-4.1 Mini'} (${model === 'gemini-2.5-flash' ? 'selected for long-form nuance and voice matching' : 'selected for short-form punchiness and speed'})\nStrategic Angle: ${brief.strategicAngle}\nFramework: ${framework}\nEmotional Hook: ${brief.emotionalHook}\nAnti-Fabrication: Enforced. All examples use real frameworks and processes only.${quality.fixes?.length ? '\n\nImprovement Suggestions:\n' + quality.fixes.join('\n') : ''}`,
+        humanScore,
+        aiReasoning: `Model: ${model === 'gemini-2.5-flash' ? 'Gemini 2.5 Flash' : 'GPT-4.1 Mini'}\nAngle: ${brief.strategicAngle}\nFramework: ${frameworkKey}\nHuman Score: ${humanScore.overall}/10${humanScore.slopWordsFound.length > 0 ? `\nSlop words caught: ${humanScore.slopWordsFound.join(', ')}` : '\nNo slop detected.'}`,
       };
     });
 
     const results = await Promise.all(generationPromises);
 
-    return NextResponse.json({
-      results,
-      strategicBrief: brief,
-    });
+    return NextResponse.json({ results, strategicBrief: brief });
   } catch (error: any) {
     console.error('Generation error:', error);
     return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 });

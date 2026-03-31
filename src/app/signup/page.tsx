@@ -43,24 +43,24 @@ function SignupForm() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-[#0a0a0f]">
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-[420px]">
           <div className="mb-8">
             <Link href="/" className="flex items-center gap-2.5 mb-10">
-              <div className="w-9 h-9 rounded-lg gradient-bg flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg gradient-bg flex items-center justify-center shadow-glow">
                 <Zap className="text-white" size={20} />
               </div>
-              <span className="text-xl font-bold text-slate-900 tracking-tight">Content Factory</span>
+              <span className="text-xl font-bold text-white tracking-tight">Content Factory</span>
             </Link>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Start your free trial</h1>
-            <p className="text-slate-500 mt-1.5">14 days free. No credit card required.</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Start your free trial</h1>
+            <p className="text-slate-500 mt-1.5">Build content that doesn&apos;t sound like AI.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 rounded-xl bg-danger-50 text-danger-600 text-sm">
+              <div className="p-3 rounded-xl bg-red-950/50 text-red-400 text-sm border border-red-900/50">
                 {error}
               </div>
             )}
@@ -103,7 +103,7 @@ function SignupForm() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-400"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -132,7 +132,7 @@ function SignupForm() {
 
           <p className="text-center text-sm text-slate-500 mt-6">
             Already have an account?{' '}
-            <Link href="/login" className="text-brand-600 font-medium hover:text-brand-700">
+            <Link href="/login" className="text-indigo-400 font-medium hover:text-indigo-300">
               Sign in
             </Link>
           </p>

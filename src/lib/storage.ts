@@ -1,4 +1,4 @@
-import { User, ContentProject, BrandVoice, VoiceSample, ActivationState, BrandIntelligenceProfile, TopicIdea, UTMLink } from '@/types';
+import { User, ContentProject, BrandIntelligenceProfile, TopicIdea, BrandVoice, VoiceSample, ActivationState, UTMLink, BrandVoiceDNA, ContentExample, AudienceProfile } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const KEYS = {
@@ -10,6 +10,10 @@ const KEYS = {
   BRAND_PROFILE: 'cf_brand_profile',
   TOPIC_IDEAS: 'cf_topic_ideas',
   UTM_LINKS: 'cf_utm_links',
+  // New context engineering keys
+  BRAND_VOICE_DNA: 'cf_brand_voice_dna',
+  CONTENT_EXAMPLES: 'cf_content_examples',
+  AUDIENCE_PROFILES: 'cf_audience_profiles',
 };
 
 function getItem<T>(key: string, fallback: T): T {
@@ -27,7 +31,7 @@ function setItem<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
-// Auth
+// ─── Auth ────────────────────────────────────────────────────
 export function isAuthenticated(): boolean {
   return !!getItem<string | null>(KEYS.AUTH_TOKEN, null);
 }
@@ -78,7 +82,7 @@ export function saveUser(user: User): void {
   setItem(KEYS.USER, user);
 }
 
-// Projects
+// ─── Projects ────────────────────────────────────────────────
 export function getProjects(): ContentProject[] {
   return getItem<ContentProject[]>(KEYS.PROJECTS, []);
 }
@@ -110,14 +114,13 @@ export function deleteProject(id: string): void {
   setItem(KEYS.PROJECTS, projects);
 }
 
-// Brand Intelligence Profile (COMMAND 1 output)
+// ─── Brand Intelligence Profile ──────────────────────────────
 export function getBrandProfile(): BrandIntelligenceProfile | null {
   return getItem<BrandIntelligenceProfile | null>(KEYS.BRAND_PROFILE, null);
 }
 
 export function saveBrandProfile(profile: BrandIntelligenceProfile): void {
   setItem(KEYS.BRAND_PROFILE, profile);
-  // Also update activation
   const activation = getActivation();
   activation.milestones.voiceProfileBuilt = true;
   setItem(KEYS.ACTIVATION, activation);
@@ -131,7 +134,78 @@ export function updateBrandProfile(updates: Partial<BrandIntelligenceProfile>): 
   return updated;
 }
 
-// Topic Ideas (COMMAND 5 output)
+// ─── Brand Voice DNA (NEW) ───────────────────────────────────
+export function getBrandVoiceDNA(): BrandVoiceDNA | null {
+  return getItem<BrandVoiceDNA | null>(KEYS.BRAND_VOICE_DNA, null);
+}
+
+export function saveBrandVoiceDNA(dna: BrandVoiceDNA): void {
+  setItem(KEYS.BRAND_VOICE_DNA, dna);
+}
+
+// ─── Content Examples Library (NEW) ──────────────────────────
+export function getContentExamples(): ContentExample[] {
+  return getItem<ContentExample[]>(KEYS.CONTENT_EXAMPLES, []);
+}
+
+export function addContentExample(example: ContentExample): void {
+  const examples = getContentExamples();
+  examples.unshift(example);
+  setItem(KEYS.CONTENT_EXAMPLES, examples);
+}
+
+export function updateContentExample(id: string, updates: Partial<ContentExample>): void {
+  const examples = getContentExamples();
+  const idx = examples.findIndex(e => e.id === id);
+  if (idx >= 0) {
+    examples[idx] = { ...examples[idx], ...updates, updatedAt: new Date().toISOString() };
+    setItem(KEYS.CONTENT_EXAMPLES, examples);
+  }
+}
+
+export function deleteContentExample(id: string): void {
+  const examples = getContentExamples().filter(e => e.id !== id);
+  setItem(KEYS.CONTENT_EXAMPLES, examples);
+}
+
+// ─── Audience Psychographic Profiles (NEW) ───────────────────
+export function getAudienceProfiles(): AudienceProfile[] {
+  return getItem<AudienceProfile[]>(KEYS.AUDIENCE_PROFILES, []);
+}
+
+export function addAudienceProfile(profile: AudienceProfile): void {
+  const profiles = getAudienceProfiles();
+  // If this is default, unset others
+  if (profile.isDefault) {
+    profiles.forEach(p => p.isDefault = false);
+  }
+  profiles.unshift(profile);
+  setItem(KEYS.AUDIENCE_PROFILES, profiles);
+}
+
+export function updateAudienceProfile(id: string, updates: Partial<AudienceProfile>): void {
+  const profiles = getAudienceProfiles();
+  const idx = profiles.findIndex(p => p.id === id);
+  if (idx >= 0) {
+    if (updates.isDefault) {
+      profiles.forEach(p => p.isDefault = false);
+    }
+    profiles[idx] = { ...profiles[idx], ...updates, updatedAt: new Date().toISOString() };
+    setItem(KEYS.AUDIENCE_PROFILES, profiles);
+  }
+}
+
+export function deleteAudienceProfile(id: string): void {
+  const profiles = getAudienceProfiles().filter(p => p.id !== id);
+  setItem(KEYS.AUDIENCE_PROFILES, profiles);
+}
+
+export function getDefaultAudienceProfile(): AudienceProfile | null {
+  const profiles = getAudienceProfiles();
+  return profiles.find(p => p.isDefault) || profiles[0] || null;
+}
+
+// ─── Topic Ideas ─────────────────────────────────────────────
 export function getTopicIdeas(): TopicIdea[] {
   return getItem<TopicIdea[]>(KEYS.TOPIC_IDEAS, []);
 }
@@ -140,16 +214,11 @@ export function saveTopicIdeas(ideas: TopicIdea[]): void {
   setItem(KEYS.TOPIC_IDEAS, ideas);
 }
 
-// Brand Voice (legacy, still used by voice page)
+// ─── Brand Voice (legacy) ────────────────────────────────────
 export function getBrandVoice(): BrandVoice {
   return getItem<BrandVoice>(KEYS.BRAND_VOICE, {
     samples: [],
-    characteristics: {
-      tone: [],
-      vocabulary: [],
-      sentenceStructure: [],
-      frameworks: [],
-    },
+    characteristics: { tone: [], vocabulary: [], sentenceStructure: [], frameworks: [] },
     summary: '',
     voiceConfidence: 0,
   });
@@ -157,12 +226,7 @@ export function getBrandVoice(): BrandVoice {
 
 export function addVoiceSample(content: string, source: string): VoiceSample {
   const voice = getBrandVoice();
-  const sample: VoiceSample = {
-    id: uuidv4(),
-    content,
-    source,
-    addedAt: new Date().toISOString(),
-  };
+  const sample: VoiceSample = { id: uuidv4(), content, source, addedAt: new Date().toISOString() };
   voice.samples.push(sample);
   setItem(KEYS.BRAND_VOICE, voice);
   return sample;
@@ -181,8 +245,7 @@ export function updateBrandVoice(updates: Partial<BrandVoice>): BrandVoice {
 }
 
 export function getVoiceSamples(): VoiceSample[] {
-  const voice = getBrandVoice();
-  return voice.samples || [];
+  return getBrandVoice().samples || [];
 }
 
 export function removeVoiceSample(id: string): void {
@@ -191,30 +254,20 @@ export function removeVoiceSample(id: string): void {
   setItem(KEYS.BRAND_VOICE, voice);
 }
 
-// Activation tracking
+// ─── Activation ──────────────────────────────────────────────
 export function initActivation(): void {
   const now = new Date().toISOString();
   const today = now.split('T')[0];
   const activation: ActivationState = {
     milestones: {
-      onboardingComplete: false,
-      voiceProfileBuilt: false,
-      firstContentGenerated: false,
-      threeContentGenerated: false,
-      contentCopied: false,
-      contentDownloaded: false,
-      returnedDay2: false,
-      voiceRetrained: false,
+      onboardingComplete: false, voiceProfileBuilt: false,
+      firstContentGenerated: false, threeContentGenerated: false,
+      contentCopied: false, contentDownloaded: false,
+      returnedDay2: false, voiceRetrained: false,
     },
-    firstLoginDate: now,
-    lastLoginDate: now,
-    loginDays: [today],
-    contentGeneratedCount: 0,
-    copyCount: 0,
-    downloadCount: 0,
-    dismissedTips: [],
-    seenFeatures: [],
-    currentStreak: 1,
+    firstLoginDate: now, lastLoginDate: now, loginDays: [today],
+    contentGeneratedCount: 0, copyCount: 0, downloadCount: 0,
+    dismissedTips: [], seenFeatures: [], currentStreak: 1,
   };
   setItem(KEYS.ACTIVATION, activation);
 }
@@ -222,24 +275,14 @@ export function initActivation(): void {
 export function getActivation(): ActivationState {
   return getItem<ActivationState>(KEYS.ACTIVATION, {
     milestones: {
-      onboardingComplete: false,
-      voiceProfileBuilt: false,
-      firstContentGenerated: false,
-      threeContentGenerated: false,
-      contentCopied: false,
-      contentDownloaded: false,
-      returnedDay2: false,
-      voiceRetrained: false,
+      onboardingComplete: false, voiceProfileBuilt: false,
+      firstContentGenerated: false, threeContentGenerated: false,
+      contentCopied: false, contentDownloaded: false,
+      returnedDay2: false, voiceRetrained: false,
     },
-    firstLoginDate: new Date().toISOString(),
-    lastLoginDate: new Date().toISOString(),
-    loginDays: [],
-    contentGeneratedCount: 0,
-    copyCount: 0,
-    downloadCount: 0,
-    dismissedTips: [],
-    seenFeatures: [],
-    currentStreak: 0,
+    firstLoginDate: new Date().toISOString(), lastLoginDate: new Date().toISOString(),
+    loginDays: [], contentGeneratedCount: 0, copyCount: 0, downloadCount: 0,
+    dismissedTips: [], seenFeatures: [], currentStreak: 0,
   });
 }
 
@@ -253,54 +296,45 @@ export function updateActivation(updates: Partial<ActivationState>): ActivationS
 export function trackLoginDay(): void {
   const activation = getActivation();
   const today = new Date().toISOString().split('T')[0];
-  if (!activation.loginDays.includes(today)) {
-    activation.loginDays.push(today);
-  }
+  if (!activation.loginDays.includes(today)) activation.loginDays.push(today);
   activation.lastLoginDate = new Date().toISOString();
-  if (activation.loginDays.length >= 2) {
-    activation.milestones.returnedDay2 = true;
-  }
+  if (activation.loginDays.length >= 2) activation.milestones.returnedDay2 = true;
   const sortedDays = [...activation.loginDays].sort().reverse();
   let streak = 1;
   for (let i = 1; i < sortedDays.length; i++) {
     const prev = new Date(sortedDays[i - 1]);
     const curr = new Date(sortedDays[i]);
     const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24);
-    if (diff <= 1.5) streak++;
-    else break;
+    if (diff <= 1.5) streak++; else break;
   }
   activation.currentStreak = streak;
   setItem(KEYS.ACTIVATION, activation);
 }
 
 export function trackCopy(): void {
-  const activation = getActivation();
-  activation.copyCount++;
-  activation.milestones.contentCopied = true;
-  setItem(KEYS.ACTIVATION, activation);
+  const a = getActivation();
+  a.copyCount++;
+  a.milestones.contentCopied = true;
+  setItem(KEYS.ACTIVATION, a);
 }
 
 export function trackDownload(): void {
-  const activation = getActivation();
-  activation.downloadCount++;
-  activation.milestones.contentDownloaded = true;
-  setItem(KEYS.ACTIVATION, activation);
+  const a = getActivation();
+  a.downloadCount++;
+  a.milestones.contentDownloaded = true;
+  setItem(KEYS.ACTIVATION, a);
 }
 
 export function dismissTip(tipId: string): void {
-  const activation = getActivation();
-  if (!activation.dismissedTips.includes(tipId)) {
-    activation.dismissedTips.push(tipId);
-  }
-  setItem(KEYS.ACTIVATION, activation);
+  const a = getActivation();
+  if (!a.dismissedTips.includes(tipId)) a.dismissedTips.push(tipId);
+  setItem(KEYS.ACTIVATION, a);
 }
 
 export function markFeatureSeen(featureId: string): void {
-  const activation = getActivation();
-  if (!activation.seenFeatures.includes(featureId)) {
-    activation.seenFeatures.push(featureId);
-  }
-  setItem(KEYS.ACTIVATION, activation);
+  const a = getActivation();
+  if (!a.seenFeatures.includes(featureId)) a.seenFeatures.push(featureId);
+  setItem(KEYS.ACTIVATION, a);
 }
 
 export function getActivationScore(): number {
@@ -318,15 +352,14 @@ export function getActivationScore(): number {
 }
 
 export function getCompletedMilestones(): number {
-  const a = getActivation();
-  return Object.values(a.milestones).filter(Boolean).length;
+  return Object.values(getActivation().milestones).filter(Boolean).length;
 }
 
 export function getTotalMilestones(): number {
   return 8;
 }
 
-// UTM Links
+// ─── UTM Links ───────────────────────────────────────────────
 export function getUTMLinks(): UTMLink[] {
   return getItem<UTMLink[]>(KEYS.UTM_LINKS, []);
 }
@@ -347,7 +380,7 @@ export function deleteUTMLink(id: string): void {
   setItem(KEYS.UTM_LINKS, links);
 }
 
-// Stats helpers
+// ─── Stats ───────────────────────────────────────────────────
 export function getStats() {
   const projects = getProjects();
   const allPieces = projects.flatMap(p => p.pieces);
@@ -355,12 +388,10 @@ export function getStats() {
   const avgScore = totalContent > 0
     ? allPieces.reduce((sum, p) => sum + p.qualityScore, 0) / totalContent
     : 0;
-
   const platformDist: Record<string, number> = {};
   allPieces.forEach(p => {
     platformDist[p.platform] = (platformDist[p.platform] || 0) + 1;
   });
-
   return {
     contentGenerated: totalContent,
     projectCount: projects.length,

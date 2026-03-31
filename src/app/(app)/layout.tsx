@@ -17,10 +17,10 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="text-center">
           <div className="spinner mx-auto mb-4" style={{ width: 32, height: 32 }} />
-          <p className="text-sm text-slate-500">Loading...</p>
+          <p className="text-sm text-slate-600">Loading...</p>
         </div>
       </div>
     );

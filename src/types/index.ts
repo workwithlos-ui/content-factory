@@ -1,3 +1,4 @@
+// ─── USER ────────────────────────────────────────────────────
 export interface User {
   id: string;
   email: string;
@@ -14,7 +15,88 @@ export interface User {
   createdAt: string;
 }
 
-// Raw answers from onboarding questions
+// ─── BRAND VOICE DNA (new context engineering feature) ───────
+export interface BrandVoiceDNA {
+  brandName: string;
+  voiceDescriptors: string; // e.g. "direct, no-BS, tactical, slightly irreverent"
+  phrasesTheyUse: string[]; // e.g. "here's the play", "let me break this down"
+  phrasesTheyNeverUse: string[]; // e.g. "leverage", "synergy"
+  writingStyleReference: string; // e.g. "Alex Hormozi meets Tim Ferriss"
+  targetAudienceDescription: string;
+  audiencePainPoints: string;
+  updatedAt: string;
+}
+
+// ─── CONTENT EXAMPLES LIBRARY (new context engineering feature) ──
+export interface ContentExample {
+  id: string;
+  title: string;
+  content: string;
+  platform: Platform | 'general';
+  contentType: string; // hook, thread, carousel, newsletter, etc.
+  tags: string[];
+  analyzedPatterns?: string; // AI-extracted patterns
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── AUDIENCE PSYCHOGRAPHIC PROFILES (new context engineering feature) ──
+export interface AudienceProfile {
+  id: string;
+  name: string; // e.g. "Agency owners doing $10K-50K/month"
+  painPoints: string[]; // top 3
+  desires: string[]; // top 3
+  objections: string[]; // biggest objections to buying
+  language: string[]; // actual phrases from their world
+  failedSolutions: string[]; // what they've tried that didn't work
+  scrollStoppers: string[]; // what makes them stop scrolling
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── CREATOR FRAMEWORKS ─────────────────────────────────────
+export type CreatorFramework =
+  | 'hormozi-hook-retain-reward'
+  | 'brunson-epiphany-bridge'
+  | 'ferriss-recipe'
+  | 'welsh-paips'
+  | 'koe-authority'
+  | 'custom'
+  | 'auto';
+
+export const CREATOR_FRAMEWORK_LABELS: Record<CreatorFramework, { name: string; description: string }> = {
+  'hormozi-hook-retain-reward': {
+    name: 'Hormozi Hook/Retain/Reward',
+    description: 'Hook with shock/question/bold promise. Deliver value immediately. End with specific actionable takeaway.',
+  },
+  'brunson-epiphany-bridge': {
+    name: 'Brunson Epiphany Bridge',
+    description: 'Backstory. The Wall. The Epiphany. The Plan. The Result.',
+  },
+  'ferriss-recipe': {
+    name: 'Ferriss Recipe Method',
+    description: 'Exact steps, tools, templates. Intensely practical and specific.',
+  },
+  'welsh-paips': {
+    name: 'Welsh PAIPS',
+    description: 'Problem. Agitate. Intrigue. Positive Future. Solution.',
+  },
+  'koe-authority': {
+    name: 'Koe Authority Builder',
+    description: 'Growth + Authenticity + Authority content rotation.',
+  },
+  'custom': {
+    name: 'Custom Framework',
+    description: 'User-defined framework structure.',
+  },
+  'auto': {
+    name: 'Auto-Select',
+    description: 'AI picks the best framework for the platform and topic.',
+  },
+};
+
+// ─── LEGACY TYPES (preserved for backward compatibility) ─────
 export interface BusinessProfile {
   whatYouSell?: string;
   pricePoint?: string;
@@ -27,7 +109,6 @@ export interface BusinessProfile {
   urlAnalysis?: string;
 }
 
-// COMMAND 1 output: The full Brand Intelligence Profile
 export interface BrandIntelligenceProfile {
   positioningStatement: string;
   corePainPoints: string[];
@@ -42,7 +123,6 @@ export interface BrandIntelligenceProfile {
   updatedAt: string;
 }
 
-// COMMAND 6 output: Voice DNA Profile
 export interface VoiceDNA {
   sentenceStructure: string;
   vocabularyLevel: string;
@@ -55,7 +135,6 @@ export interface VoiceDNA {
   summary: string;
 }
 
-// COMMAND 2 output: Strategic Brief
 export interface StrategicBrief {
   strategicAngle: string;
   emotionalHook: string;
@@ -64,7 +143,6 @@ export interface StrategicBrief {
   platformPriority: Platform[];
 }
 
-// COMMAND 5 output: Topic Ideas
 export interface TopicIdea {
   id?: string;
   hook: string;
@@ -138,31 +216,25 @@ export const FRAMEWORK_LABELS: Record<ContentFramework, string> = {
 export type AIModel = 'gpt-4.1-mini' | 'gemini-2.5-flash';
 export type ModelPreference = 'auto' | 'gpt' | 'claude';
 
-// Platform-to-content-type mapping for UTM
 export const PLATFORM_CONTENT_TYPES: Record<Platform, string> = {
   twitter: 'thread',
   linkedin: 'post',
   instagram: 'caption',
   email: 'newsletter',
   blog: 'article',
-  youtube: 'description',
-  'video-script': 'script',
 };
 
-// Model selection: which model is best for which platform
 export const PLATFORM_MODEL_MAP: Record<Platform, AIModel> = {
   twitter: 'gpt-4.1-mini',
   linkedin: 'gemini-2.5-flash',
   instagram: 'gpt-4.1-mini',
   email: 'gemini-2.5-flash',
   blog: 'gemini-2.5-flash',
-  youtube: 'gpt-4.1-mini',
-  'video-script': 'gpt-4.1-mini',
 };
 
 export const MODEL_LABELS: Record<AIModel, { name: string; badge: string; color: string }> = {
-  'gpt-4.1-mini': { name: 'GPT-4.1 Mini', badge: 'GPT', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', badge: 'Gemini', color: 'bg-violet-50 text-violet-700 border-violet-200' },
+  'gpt-4.1-mini': { name: 'GPT-4.1 Mini', badge: 'GPT', color: 'bg-emerald-900/30 text-emerald-400 border-emerald-700' },
+  'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', badge: 'Gemini', color: 'bg-violet-900/30 text-violet-400 border-violet-700' },
 };
 
 export interface UTMParams {
@@ -183,6 +255,18 @@ export interface UTMLink {
   createdAt: string;
 }
 
+// ─── QUALITY FILTER (Anti-Slop) ─────────────────────────────
+export interface HumanScore {
+  overall: number; // 1-10
+  slopWordsFound: string[];
+  openingIsSpecific: boolean;
+  hasIrregularRhythm: boolean;
+  hasSpecificDetails: boolean; // numbers, names, data points
+  hasHedgingLanguage: boolean;
+  feedback: string[];
+  autoRewritten: boolean;
+}
+
 export interface ContentPiece {
   id: string;
   projectId: string;
@@ -190,7 +274,9 @@ export interface ContentPiece {
   content: string;
   qualityScore: number;
   qualityBreakdown?: QualityBreakdown;
+  humanScore?: HumanScore;
   framework?: ContentFramework;
+  creatorFramework?: CreatorFramework;
   aiReasoning?: string;
   model?: AIModel;
   utmLink?: UTMLink;
@@ -218,10 +304,12 @@ export interface ContentProject {
   keyPoints: string;
   tonePreference: string;
   targetAudience: string;
-  sourceType: 'topic' | 'url' | 'notes' | 'audio';
+  sourceType: 'topic' | 'url' | 'notes' | 'audio' | 'remix';
   sourceContent: string;
   pieces: ContentPiece[];
   strategicBrief?: StrategicBrief;
+  audienceProfileId?: string;
+  creatorFramework?: CreatorFramework;
   status: 'generating' | 'complete' | 'error';
   createdAt: string;
   updatedAt: string;
@@ -232,25 +320,21 @@ export type Platform =
   | 'linkedin'
   | 'instagram'
   | 'email'
-  | 'blog'
-  | 'youtube'
-  | 'video-script';
+  | 'blog';
 
 export const PLATFORMS: { key: Platform; label: string; icon: string; color: string }[] = [
-  { key: 'twitter', label: 'Twitter/X Thread', icon: 'Twitter', color: '#1DA1F2' },
   { key: 'linkedin', label: 'LinkedIn Post', icon: 'Linkedin', color: '#0A66C2' },
+  { key: 'twitter', label: 'Twitter/X Thread', icon: 'Twitter', color: '#1DA1F2' },
   { key: 'instagram', label: 'Instagram Caption', icon: 'Instagram', color: '#E4405F' },
   { key: 'email', label: 'Email Newsletter', icon: 'Mail', color: '#6366f1' },
   { key: 'blog', label: 'SEO Blog Post', icon: 'FileText', color: '#059669' },
-  { key: 'youtube', label: 'YouTube Package', icon: 'Youtube', color: '#FF0000' },
-  { key: 'video-script', label: 'Video Scripts', icon: 'Video', color: '#8B5CF6' },
 ];
 
 export interface DashboardStats {
   contentGenerated: number;
   pipelineInfluenced: number;
   avgQualityScore: number;
-  platformDistribution: Record<Platform, number>;
+  platformDistribution: Record<string, number>;
   projectCount: number;
   recentProjects: ContentProject[];
 }
@@ -310,11 +394,6 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     topTopics: ['Framework breakdowns', 'Case study storytelling', 'Industry trend analysis', 'Methodology deep-dives', 'Client transformation stories'],
     competitorGaps: ['ROI quantification methods', 'Change management content', 'Procurement-focused content'],
   },
-  'Professional Services': {
-    avgContentPerMonth: 20, avgQualityScore: 8.3, avgPipelinePerMonth: 38000, avgLeadsPerMonth: 6,
-    topTopics: ['Expertise showcases', 'Regulatory updates', 'Best practice guides', 'Industry benchmarking', 'Client success stories'],
-    competitorGaps: ['Thought leadership on emerging regulations', 'Cross-industry insights', 'Process automation content'],
-  },
   'Agency': {
     avgContentPerMonth: 32, avgQualityScore: 8.7, avgPipelinePerMonth: 55000, avgLeadsPerMonth: 15,
     topTopics: ['Campaign breakdowns', 'Creative process insights', 'Platform algorithm updates', 'Client results showcases', 'Industry predictions'],
@@ -324,31 +403,6 @@ export const INDUSTRY_BENCHMARKS: Record<string, IndustryBenchmark> = {
     avgContentPerMonth: 30, avgQualityScore: 8.2, avgPipelinePerMonth: 35000, avgLeadsPerMonth: 20,
     topTopics: ['Conversion optimization', 'Customer journey mapping', 'Seasonal strategy guides', 'Platform comparison content', 'Supply chain insights'],
     competitorGaps: ['Post-purchase experience content', 'Sustainability storytelling', 'Community building strategies'],
-  },
-  'Financial Services': {
-    avgContentPerMonth: 18, avgQualityScore: 8.8, avgPipelinePerMonth: 85000, avgLeadsPerMonth: 5,
-    topTopics: ['Market analysis', 'Regulatory compliance guides', 'Investment strategy insights', 'Risk management frameworks', 'Fintech disruption analysis'],
-    competitorGaps: ['Accessible financial education', 'ESG investing content', 'Digital transformation in finance'],
-  },
-  'Healthcare': {
-    avgContentPerMonth: 16, avgQualityScore: 8.5, avgPipelinePerMonth: 52000, avgLeadsPerMonth: 4,
-    topTopics: ['Clinical innovation updates', 'Patient experience insights', 'Healthcare technology reviews', 'Regulatory compliance guides', 'Operational efficiency strategies'],
-    competitorGaps: ['Value-based care content', 'Telehealth best practices', 'Healthcare AI applications'],
-  },
-  'Real Estate': {
-    avgContentPerMonth: 22, avgQualityScore: 8.1, avgPipelinePerMonth: 72000, avgLeadsPerMonth: 10,
-    topTopics: ['Market trend analysis', 'Investment strategy guides', 'Property management insights', 'Development project showcases', 'Regulatory update content'],
-    competitorGaps: ['PropTech innovation content', 'Sustainability in real estate', 'Remote work impact analysis'],
-  },
-  'Manufacturing': {
-    avgContentPerMonth: 14, avgQualityScore: 8.3, avgPipelinePerMonth: 43000, avgLeadsPerMonth: 4,
-    topTopics: ['Industry 4.0 insights', 'Supply chain optimization', 'Quality management frameworks', 'Automation case studies', 'Sustainability initiatives'],
-    competitorGaps: ['Workforce development content', 'Digital twin applications', 'Reshoring strategy content'],
-  },
-  'Technology': {
-    avgContentPerMonth: 26, avgQualityScore: 8.5, avgPipelinePerMonth: 58000, avgLeadsPerMonth: 14,
-    topTopics: ['Technical deep-dives', 'Architecture decision guides', 'Emerging technology analysis', 'Developer experience content', 'Security best practices'],
-    competitorGaps: ['Non-technical buyer content', 'Total cost of ownership analysis', 'Migration strategy guides'],
   },
   'Other': {
     avgContentPerMonth: 20, avgQualityScore: 8.3, avgPipelinePerMonth: 40000, avgLeadsPerMonth: 8,

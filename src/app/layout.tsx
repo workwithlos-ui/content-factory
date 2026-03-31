@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Content Factory — The Growth Operating System",
-  description: "One input. Seven platforms. Revenue you can track. Turn your expertise into a 24/7 inbound pipeline machine.",
-  keywords: ["content marketing", "AI content", "revenue attribution", "B2B marketing"],
+  title: "Content Factory — Anti-Slop Content Engine",
+  description: "Context-engineered content that sounds like you, not ChatGPT. Brand voice DNA, audience profiles, creator frameworks, and a 12-rule anti-slop system.",
+  keywords: ["content marketing", "AI content", "anti-slop", "context engineering", "brand voice"],
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased bg-[#0a0a0f] text-white">
         <AuthProvider>
           {children}
         </AuthProvider>
