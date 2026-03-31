@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import {
   LayoutDashboard, PenTool, Library, Settings, Mic2, LogOut,
   Menu, X, Zap, ChevronRight, User, Lightbulb, Users, BookOpen,
-  Shuffle, BarChart3,
+  Shuffle, BarChart3, Calendar, Image, TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +15,9 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Create Content', href: '/content/new', icon: PenTool },
   { name: 'Content Remix', href: '/remix', icon: Shuffle },
+  { name: 'Content Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Visual Assets', href: '/visuals', icon: Image },
+  { name: 'Trends & Intel', href: '/trends', icon: TrendingUp },
   { name: 'Content Library', href: '/library', icon: Library },
   { name: 'Brand Voice DNA', href: '/voice-dna', icon: Mic2 },
   { name: 'Examples Library', href: '/examples', icon: BookOpen },

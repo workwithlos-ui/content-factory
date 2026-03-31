@@ -1,4 +1,4 @@
-import { User, ContentProject, BrandIntelligenceProfile, TopicIdea, BrandVoice, VoiceSample, ActivationState, UTMLink, BrandVoiceDNA, ContentExample, AudienceProfile } from '@/types';
+import { User, ContentProject, BrandIntelligenceProfile, TopicIdea, BrandVoice, VoiceSample, ActivationState, UTMLink, BrandVoiceDNA, ContentExample, AudienceProfile, ScheduledPost, VisualAsset, TrendItem, Competitor } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const KEYS = {
@@ -14,6 +14,12 @@ const KEYS = {
   BRAND_VOICE_DNA: 'cf_brand_voice_dna',
   CONTENT_EXAMPLES: 'cf_content_examples',
   AUDIENCE_PROFILES: 'cf_audience_profiles',
+  // New feature keys
+  SCHEDULED_POSTS: 'cf_scheduled_posts',
+  VISUAL_ASSETS: 'cf_visual_assets',
+  TREND_ITEMS: 'cf_trend_items',
+  COMPETITORS: 'cf_competitors',
+  TRENDS_LAST_REFRESH: 'cf_trends_last_refresh',
 };
 
 function getItem<T>(key: string, fallback: T): T {
@@ -378,6 +384,89 @@ export function saveUTMLinks(links: UTMLink[]): void {
 export function deleteUTMLink(id: string): void {
   const links = getUTMLinks().filter(l => l.id !== id);
   setItem(KEYS.UTM_LINKS, links);
+}
+
+// ─── Scheduled Posts (Calendar) ──────────────────────────────
+export function getScheduledPosts(): ScheduledPost[] {
+  return getItem<ScheduledPost[]>(KEYS.SCHEDULED_POSTS, []);
+}
+
+export function saveScheduledPost(post: ScheduledPost): void {
+  const posts = getScheduledPosts();
+  const idx = posts.findIndex(p => p.id === post.id);
+  if (idx >= 0) {
+    posts[idx] = post;
+  } else {
+    posts.unshift(post);
+  }
+  setItem(KEYS.SCHEDULED_POSTS, posts);
+}
+
+export function deleteScheduledPost(id: string): void {
+  const posts = getScheduledPosts().filter(p => p.id !== id);
+  setItem(KEYS.SCHEDULED_POSTS, posts);
+}
+
+export function updateScheduledPost(id: string, updates: Partial<ScheduledPost>): void {
+  const posts = getScheduledPosts();
+  const idx = posts.findIndex(p => p.id === id);
+  if (idx >= 0) {
+    posts[idx] = { ...posts[idx], ...updates, updatedAt: new Date().toISOString() };
+    setItem(KEYS.SCHEDULED_POSTS, posts);
+  }
+}
+
+// ─── Visual Assets ──────────────────────────────────────────
+export function getVisualAssets(): VisualAsset[] {
+  return getItem<VisualAsset[]>(KEYS.VISUAL_ASSETS, []);
+}
+
+export function saveVisualAsset(asset: VisualAsset): void {
+  const assets = getVisualAssets();
+  assets.unshift(asset);
+  setItem(KEYS.VISUAL_ASSETS, assets);
+}
+
+export function deleteVisualAsset(id: string): void {
+  const assets = getVisualAssets().filter(a => a.id !== id);
+  setItem(KEYS.VISUAL_ASSETS, assets);
+}
+
+export function getVisualAssetsForProject(projectId: string): VisualAsset[] {
+  return getVisualAssets().filter(a => a.projectId === projectId);
+}
+
+// ─── Trends ─────────────────────────────────────────────────
+export function getTrendItems(): TrendItem[] {
+  return getItem<TrendItem[]>(KEYS.TREND_ITEMS, []);
+}
+
+export function saveTrendItems(items: TrendItem[]): void {
+  setItem(KEYS.TREND_ITEMS, items);
+}
+
+export function getTrendsLastRefresh(): string | null {
+  return getItem<string | null>(KEYS.TRENDS_LAST_REFRESH, null);
+}
+
+export function setTrendsLastRefresh(date: string): void {
+  setItem(KEYS.TRENDS_LAST_REFRESH, date);
+}
+
+// ─── Competitors ────────────────────────────────────────────
+export function getCompetitors(): Competitor[] {
+  return getItem<Competitor[]>(KEYS.COMPETITORS, []);
+}
+
+export function addCompetitor(competitor: Competitor): void {
+  const competitors = getCompetitors();
+  competitors.push(competitor);
+  setItem(KEYS.COMPETITORS, competitors);
+}
+
+export function removeCompetitor(id: string): void {
+  const competitors = getCompetitors().filter(c => c.id !== id);
+  setItem(KEYS.COMPETITORS, competitors);
 }
 
 // ─── Stats ───────────────────────────────────────────────────

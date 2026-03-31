@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { getStats, getActivation, getActivationScore, getBrandVoiceDNA, getContentExamples, getAudienceProfiles, markFeatureSeen, getBrandVoice } from '@/lib/storage';
+import { getStats, getActivation, getActivationScore, getBrandVoiceDNA, getContentExamples, getAudienceProfiles, markFeatureSeen, getBrandVoice, getScheduledPosts, getVisualAssets, getTrendItems } from '@/lib/storage';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
-import { Zap, PenTool, Mic2, BookOpen, Users, Shuffle, ArrowRight, BarChart3, TrendingUp, FileText, Sparkles, Target, Star, ChevronRight, ArrowUpRight, Bot } from 'lucide-react';
+import { ScheduledPost, TrendItem, VisualAsset, PLATFORMS } from '@/types';
+import { platformIcons, platformColors } from '@/lib/platform-icons';
+import { Zap, PenTool, Mic2, BookOpen, Users, Shuffle, ArrowRight, BarChart3, TrendingUp, FileText, Sparkles, Target, Star, ChevronRight, ArrowUpRight, Bot, Calendar, Image, Flame, Sun, Leaf, Shield, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
@@ -14,6 +16,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [contextStatus, setContextStatus] = useState({ voiceDNA: false, examples: 0, audiences: 0 });
+  const [upcomingPosts, setUpcomingPosts] = useState<ScheduledPost[]>([]);
+  const [recentVisuals, setRecentVisuals] = useState<VisualAsset[]>([]);
+  const [trendItems, setTrendItems] = useState<TrendItem[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) { router.push('/login'); return; }
@@ -23,6 +28,15 @@ export default function DashboardPage() {
     const examples = getContentExamples();
     const audiences = getAudienceProfiles();
     setContextStatus({ voiceDNA: !!voiceDNA?.brandName, examples: examples.length, audiences: audiences.length });
+
+    // Load new feature data
+    const today = new Date().toISOString().split('T')[0];
+    const posts = getScheduledPosts()
+      .filter(p => p.scheduledDate >= today && p.status !== 'published')
+      .sort((a, b) => a.scheduledDate === b.scheduledDate ? a.scheduledTime.localeCompare(b.scheduledTime) : a.scheduledDate.localeCompare(b.scheduledDate));
+    setUpcomingPosts(posts.slice(0, 5));
+    setRecentVisuals(getVisualAssets().slice(0, 4));
+    setTrendItems(getTrendItems().filter(t => t.urgency === 'hot').slice(0, 3));
   }, [isLoading, isAuthenticated, router]);
 
   if (isLoading || !stats) return (
@@ -108,30 +122,127 @@ export default function DashboardPage() {
           <p className={cn('text-3xl font-bold', stats.avgQualityScore >= 7 ? 'text-emerald-400' : stats.avgQualityScore > 0 ? 'text-amber-400' : 'text-slate-600')}>{stats.avgQualityScore > 0 ? stats.avgQualityScore : '—'}</p>
         </div>
         <div className="card p-5">
-          <div className="flex items-center gap-2 mb-3"><BarChart3 className="w-4 h-4 text-emerald-400" /><span className="text-xs font-medium text-slate-500">Platforms Used</span></div>
-          <p className="text-3xl font-bold text-white">{Object.keys(stats.platformDistribution || {}).length}</p>
+          <div className="flex items-center gap-2 mb-3"><Calendar className="w-4 h-4 text-violet-400" /><span className="text-xs font-medium text-slate-500">Scheduled Posts</span></div>
+          <p className="text-3xl font-bold text-white">{getScheduledPosts().filter(p => p.status !== 'published').length}</p>
+        </div>
+      </div>
+
+      {/* New Feature Widgets Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Next 7 Days Calendar Widget */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-white/[0.04]">
+            <h3 className="font-bold text-white flex items-center gap-2"><Calendar size={14} className="text-indigo-400" /> Next 7 Days</h3>
+            <Link href="/calendar" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5">View <ChevronRight size={12} /></Link>
+          </div>
+          {upcomingPosts.length === 0 ? (
+            <div className="p-6 text-center">
+              <Clock className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+              <p className="text-xs text-slate-500">No upcoming posts</p>
+              <Link href="/calendar" className="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">Schedule content</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.04]">
+              {upcomingPosts.map(post => {
+                const Icon = platformIcons[post.platform];
+                const postDate = new Date(post.scheduledDate + 'T' + post.scheduledTime);
+                return (
+                  <Link key={post.id} href="/calendar" className="flex items-center gap-3 p-3 hover:bg-white/[0.02] transition-colors">
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center border', platformColors[post.platform])}>
+                      {Icon && <Icon size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-300 truncate">{post.content.slice(0, 50)}</p>
+                      <p className="text-[10px] text-slate-600">{postDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · {post.scheduledTime}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Hot Trends Widget */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-white/[0.04]">
+            <h3 className="font-bold text-white flex items-center gap-2"><Flame size={14} className="text-red-400" /> Hot Trends</h3>
+            <Link href="/trends" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5">View All <ChevronRight size={12} /></Link>
+          </div>
+          {trendItems.length === 0 ? (
+            <div className="p-6 text-center">
+              <TrendingUp className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+              <p className="text-xs text-slate-500">No trends yet</p>
+              <Link href="/trends" className="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">Discover trends</Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.04]">
+              {trendItems.map(trend => (
+                <Link key={trend.id} href="/trends" className="block p-3 hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Flame size={10} className="text-red-400" />
+                    <span className="text-[10px] font-semibold text-red-400 uppercase">Hot</span>
+                  </div>
+                  <p className="text-xs font-medium text-slate-300">{trend.title}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5 line-clamp-1">{trend.suggestedAngle}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Visual Assets Widget */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-white/[0.04]">
+            <h3 className="font-bold text-white flex items-center gap-2"><Image size={14} className="text-violet-400" /> Visual Assets</h3>
+            <Link href="/visuals" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5">Create <ChevronRight size={12} /></Link>
+          </div>
+          {recentVisuals.length === 0 ? (
+            <div className="p-6 text-center">
+              <Image className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+              <p className="text-xs text-slate-500">No visuals yet</p>
+              <Link href="/visuals" className="text-xs text-indigo-400 hover:text-indigo-300 mt-1 inline-block">Generate visuals</Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5 p-3">
+              {recentVisuals.map(asset => (
+                <Link key={asset.id} href="/visuals" className="rounded-lg overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all">
+                  <img src={asset.dataUrl} alt={asset.textContent.headline} className="w-full h-20 object-cover" />
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/content/new" className="card-hover p-5 flex items-center gap-4 group">
           <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center shadow-glow">
             <PenTool size={20} className="text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-white">Create New Content</h3>
-            <p className="text-sm text-slate-500">Generate anti-slop content for multiple platforms</p>
+            <h3 className="font-semibold text-white">Create Content</h3>
+            <p className="text-sm text-slate-500">Anti-slop content engine</p>
           </div>
           <ArrowRight size={18} className="text-slate-600 group-hover:text-indigo-400 transition-colors" />
         </Link>
-        <Link href="/remix" className="card-hover p-5 flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-xl bg-cyan-600/20 border border-cyan-700/30 flex items-center justify-center">
-            <Shuffle size={20} className="text-cyan-400" />
+        <Link href="/calendar" className="card-hover p-5 flex items-center gap-4 group">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-700/30 flex items-center justify-center">
+            <Calendar size={20} className="text-indigo-400" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-white">Remix Content</h3>
-            <p className="text-sm text-slate-500">Take one piece and adapt it for every platform</p>
+            <h3 className="font-semibold text-white">Content Calendar</h3>
+            <p className="text-sm text-slate-500">Schedule & manage posts</p>
+          </div>
+          <ArrowRight size={18} className="text-slate-600 group-hover:text-indigo-400 transition-colors" />
+        </Link>
+        <Link href="/trends" className="card-hover p-5 flex items-center gap-4 group">
+          <div className="w-12 h-12 rounded-xl bg-cyan-600/20 border border-cyan-700/30 flex items-center justify-center">
+            <TrendingUp size={20} className="text-cyan-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-white">Trends & Intel</h3>
+            <p className="text-sm text-slate-500">AI-powered trend feed</p>
           </div>
           <ArrowRight size={18} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
         </Link>

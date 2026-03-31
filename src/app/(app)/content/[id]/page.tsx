@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getProject, saveProject, trackCopy, trackDownload } from '@/lib/storage';
+import { getProject, saveProject, trackCopy, trackDownload, saveScheduledPost } from '@/lib/storage';
 import { ContentProject, ContentPiece, PLATFORMS } from '@/types';
-import { ArrowLeft, Copy, Check, Edit3, Save, X, RefreshCw, Download, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Edit3, Save, X, RefreshCw, Download, ChevronDown, ChevronUp, Sparkles, Calendar, Image } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'next/navigation';
 import { cn, formatDate } from '@/lib/utils';
 import { platformIcons, platformColors } from '@/lib/platform-icons';
 
@@ -20,12 +22,14 @@ const SCORE_LABELS: Record<string, { label: string; desc: string }> = {
 
 export default function ContentDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const [project, setProject] = useState<ContentProject | null>(null);
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
   const [showScoreDetail, setShowScoreDetail] = useState<string | null>(null);
+  const [scheduledPlatform, setScheduledPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     const p = getProject(params.id as string);
@@ -200,6 +204,29 @@ export default function ContentDetailPage() {
                           {copiedPlatform === piece.platform ? <><Check size={12} className="text-emerald-400" /> Copied</> : <><Copy size={12} /> Copy</>}
                         </button>
                         <button onClick={() => { setEditContent(piece.content); setEditingPlatform(piece.platform); }} className="btn-ghost text-xs gap-1.5"><Edit3 size={12} /> Edit</button>
+                        <button
+                          onClick={() => {
+                            const post = {
+                              id: uuidv4(),
+                              contentPieceId: piece.id,
+                              projectId: project.id,
+                              platform: piece.platform,
+                              content: piece.content,
+                              scheduledDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+                              scheduledTime: '09:00',
+                              status: 'scheduled' as const,
+                              createdAt: new Date().toISOString(),
+                              updatedAt: new Date().toISOString(),
+                            };
+                            saveScheduledPost(post);
+                            setScheduledPlatform(piece.platform);
+                            setTimeout(() => setScheduledPlatform(null), 2000);
+                          }}
+                          className="btn-ghost text-xs gap-1.5"
+                        >
+                          {scheduledPlatform === piece.platform ? <><Check size={12} className="text-emerald-400" /> Scheduled</> : <><Calendar size={12} /> Schedule</>}
+                        </button>
+                        <button onClick={() => router.push(`/visuals?project=${project.id}`)} className="btn-ghost text-xs gap-1.5"><Image size={12} /> Visual</button>
                         <button onClick={() => setShowScoreDetail(showScoreDetail === piece.platform ? null : piece.platform)} className="btn-ghost text-xs gap-1.5 ml-auto">
                           <Sparkles size={12} /> {showScoreDetail === piece.platform ? 'Hide' : 'Score'} Details
                         </button>

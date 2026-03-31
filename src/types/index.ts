@@ -330,6 +330,81 @@ export const PLATFORMS: { key: Platform; label: string; icon: string; color: str
   { key: 'blog', label: 'SEO Blog Post', icon: 'FileText', color: '#059669' },
 ];
 
+// ─── SCHEDULED POST (Calendar Feature) ────────────────────
+export interface ScheduledPost {
+  id: string;
+  contentPieceId?: string;
+  projectId?: string;
+  platform: Platform;
+  content: string;
+  scheduledDate: string; // ISO date string
+  scheduledTime: string; // HH:mm format
+  status: 'draft' | 'scheduled' | 'published';
+  recurring?: {
+    enabled: boolean;
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    dayOfWeek?: number; // 0-6 for weekly
+    endDate?: string;
+  };
+  visualAssetIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── VISUAL ASSET (Visuals Feature) ──────────────────────
+export type VisualType = 'linkedin-carousel' | 'twitter-header' | 'instagram-story' | 'quote-card' | 'blog-featured';
+
+export const VISUAL_TYPE_INFO: Record<VisualType, { label: string; width: number; height: number; description: string }> = {
+  'linkedin-carousel': { label: 'LinkedIn Carousel', width: 1080, height: 1080, description: 'Multi-slide branded deck (1080x1080)' },
+  'twitter-header': { label: 'X/Twitter Header', width: 1500, height: 500, description: 'Quote graphic header (1500x500)' },
+  'instagram-story': { label: 'Instagram Story', width: 1080, height: 1920, description: 'Key takeaway for stories (1080x1920)' },
+  'quote-card': { label: 'Quote Card', width: 1080, height: 1080, description: 'Single powerful quote (1080x1080)' },
+  'blog-featured': { label: 'Blog Featured Image', width: 1200, height: 630, description: 'Title + subtitle hero (1200x630)' },
+};
+
+export interface VisualAsset {
+  id: string;
+  type: VisualType;
+  contentPieceId?: string;
+  projectId?: string;
+  dataUrl: string; // base64 PNG data URL
+  textContent: {
+    headline: string;
+    body?: string;
+    cta?: string;
+    slides?: { headline: string; body: string }[];
+  };
+  brandColors: {
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+  };
+  createdAt: string;
+}
+
+// ─── TREND ITEM (Trends Feature) ─────────────────────────
+export type TrendUrgency = 'hot' | 'warm' | 'evergreen';
+
+export interface TrendItem {
+  id: string;
+  title: string;
+  whyTrending: string;
+  suggestedAngle: string;
+  suggestedPlatform: Platform;
+  urgency: TrendUrgency;
+  category: 'trend' | 'idea' | 'news' | 'competitor';
+  createdAt: string;
+}
+
+export interface Competitor {
+  id: string;
+  name: string;
+  handle: string;
+  platform: 'linkedin' | 'twitter';
+  addedAt: string;
+}
+
 export interface DashboardStats {
   contentGenerated: number;
   pipelineInfluenced: number;
