@@ -60,6 +60,46 @@ export function getPlatformColor(platform: string): string {
   return colors[platform] || '#64748b';
 }
 
+// ─── UTM Helpers ─────────────────────────────────────────────
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60)
+    .replace(/^-|-$/g, '');
+}
+
+export function buildUTMUrl(
+  baseUrl: string,
+  params: { source: string; medium: string; campaign: string; content: string }
+): string {
+  const url = new URL(baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`);
+  url.searchParams.set('utm_source', params.source);
+  url.searchParams.set('utm_medium', params.medium);
+  url.searchParams.set('utm_campaign', params.campaign);
+  url.searchParams.set('utm_content', params.content);
+  return url.toString();
+}
+
+export function generateUTMForPiece(
+  platform: string,
+  contentType: string,
+  topic: string,
+  pieceId: string,
+  baseUrl: string
+): { params: { source: string; medium: string; campaign: string; content: string }; fullUrl: string } {
+  const params = {
+    source: platform.replace('-', '_'),
+    medium: contentType,
+    campaign: slugify(topic),
+    content: pieceId.slice(0, 8),
+  };
+  const fullUrl = buildUTMUrl(baseUrl, params);
+  return { params, fullUrl };
+}
+
 export function downloadAsZip(pieces: { platform: string; content: string }[], projectTitle: string) {
   // Simple text download for now
   const combined = pieces.map(p => 

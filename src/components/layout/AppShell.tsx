@@ -19,6 +19,7 @@ import {
   User,
   Lightbulb,
   Shield,
+  Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Content Library', href: '/library', icon: Library },
   { name: 'Brand Voice', href: '/voice', icon: Mic2 },
   { name: 'Competitive Intel', href: '/competitive', icon: Shield },
+  { name: 'UTM Tracking', href: '/utm', icon: Link2 },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

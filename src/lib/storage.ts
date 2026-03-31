@@ -1,4 +1,4 @@
-import { User, ContentProject, BrandVoice, VoiceSample, ActivationState, BrandIntelligenceProfile, TopicIdea } from '@/types';
+import { User, ContentProject, BrandVoice, VoiceSample, ActivationState, BrandIntelligenceProfile, TopicIdea, UTMLink } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const KEYS = {
@@ -9,6 +9,7 @@ const KEYS = {
   ACTIVATION: 'cf_activation',
   BRAND_PROFILE: 'cf_brand_profile',
   TOPIC_IDEAS: 'cf_topic_ideas',
+  UTM_LINKS: 'cf_utm_links',
 };
 
 function getItem<T>(key: string, fallback: T): T {
@@ -71,6 +72,10 @@ export function updateUser(updates: Partial<User>): User | null {
   const updated = { ...user, ...updates };
   setItem(KEYS.USER, updated);
   return updated;
+}
+
+export function saveUser(user: User): void {
+  setItem(KEYS.USER, user);
 }
 
 // Projects
@@ -319,6 +324,27 @@ export function getCompletedMilestones(): number {
 
 export function getTotalMilestones(): number {
   return 8;
+}
+
+// UTM Links
+export function getUTMLinks(): UTMLink[] {
+  return getItem<UTMLink[]>(KEYS.UTM_LINKS, []);
+}
+
+export function saveUTMLink(link: UTMLink): void {
+  const links = getUTMLinks();
+  links.unshift(link);
+  setItem(KEYS.UTM_LINKS, links);
+}
+
+export function saveUTMLinks(links: UTMLink[]): void {
+  const existing = getUTMLinks();
+  setItem(KEYS.UTM_LINKS, [...links, ...existing]);
+}
+
+export function deleteUTMLink(id: string): void {
+  const links = getUTMLinks().filter(l => l.id !== id);
+  setItem(KEYS.UTM_LINKS, links);
 }
 
 // Stats helpers

@@ -9,6 +9,8 @@ export interface User {
   channels: string[];
   onboardingComplete: boolean;
   onboardingPath?: 'questions' | 'paste' | 'interview';
+  modelPreference?: ModelPreference;
+  defaultUtmBaseUrl?: string;
   createdAt: string;
 }
 
@@ -133,6 +135,54 @@ export const FRAMEWORK_LABELS: Record<ContentFramework, string> = {
   'old-way-new-way': 'Old Way vs New Way',
 };
 
+export type AIModel = 'gpt-4.1-mini' | 'gemini-2.5-flash';
+export type ModelPreference = 'auto' | 'gpt' | 'claude';
+
+// Platform-to-content-type mapping for UTM
+export const PLATFORM_CONTENT_TYPES: Record<Platform, string> = {
+  twitter: 'thread',
+  linkedin: 'post',
+  instagram: 'caption',
+  email: 'newsletter',
+  blog: 'article',
+  youtube: 'description',
+  'video-script': 'script',
+};
+
+// Model selection: which model is best for which platform
+export const PLATFORM_MODEL_MAP: Record<Platform, AIModel> = {
+  twitter: 'gpt-4.1-mini',
+  linkedin: 'gemini-2.5-flash',
+  instagram: 'gpt-4.1-mini',
+  email: 'gemini-2.5-flash',
+  blog: 'gemini-2.5-flash',
+  youtube: 'gpt-4.1-mini',
+  'video-script': 'gpt-4.1-mini',
+};
+
+export const MODEL_LABELS: Record<AIModel, { name: string; badge: string; color: string }> = {
+  'gpt-4.1-mini': { name: 'GPT-4.1 Mini', badge: 'GPT', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'gemini-2.5-flash': { name: 'Gemini 2.5 Flash', badge: 'Gemini', color: 'bg-violet-50 text-violet-700 border-violet-200' },
+};
+
+export interface UTMParams {
+  source: string;
+  medium: string;
+  campaign: string;
+  content: string;
+}
+
+export interface UTMLink {
+  id: string;
+  projectId: string;
+  pieceId: string;
+  platform: Platform;
+  baseUrl: string;
+  utmParams: UTMParams;
+  fullUrl: string;
+  createdAt: string;
+}
+
 export interface ContentPiece {
   id: string;
   projectId: string;
@@ -142,6 +192,8 @@ export interface ContentPiece {
   qualityBreakdown?: QualityBreakdown;
   framework?: ContentFramework;
   aiReasoning?: string;
+  model?: AIModel;
+  utmLink?: UTMLink;
   status: 'draft' | 'published' | 'scheduled';
   createdAt: string;
   updatedAt: string;

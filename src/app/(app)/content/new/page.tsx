@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { saveProject, getBrandVoice, getBrandProfile, trackCopy, trackDownload } from '@/lib/storage';
-import { getQualityBg, downloadAsZip } from '@/lib/utils';
-import { ContentProject, ContentPiece, PLATFORMS, FRAMEWORK_LABELS, ContentFramework } from '@/types';
+import { saveProject, getBrandVoice, getBrandProfile, trackCopy, trackDownload, saveUTMLinks, getUser } from '@/lib/storage';
+import { getQualityBg, downloadAsZip, generateUTMForPiece } from '@/lib/utils';
+import { ContentProject, ContentPiece, PLATFORMS, FRAMEWORK_LABELS, ContentFramework, MODEL_LABELS, AIModel, PLATFORM_CONTENT_TYPES } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ArrowLeft, Sparkles, RefreshCw, Download, Copy, Check,
   ChevronDown, ChevronUp, Edit3, Save, X, Loader2,
-  FileText, AlertCircle, CheckCircle2, Bot, Info,
+  FileText, AlertCircle, CheckCircle2, Bot, Info, Link2, Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -82,6 +82,9 @@ export default function CreateContentPage() {
     try {
       const brandVoice = getBrandVoice();
       const brandProfile = typeof window !== 'undefined' ? getBrandProfile() : null;
+      const storedUser = getUser();
+      const modelPref = storedUser?.modelPreference || 'auto';
+      const utmBaseUrl = storedUser?.defaultUtmBaseUrl || storedUser?.websiteUrl || user?.websiteUrl || 'https://example.com';
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,6 +97,8 @@ export default function CreateContentPage() {
           businessProfile: brandVoice.businessProfile || {},
           brandIntelligence: brandProfile || null,
           platforms: ['twitter', 'linkedin', 'instagram', 'email', 'blog', 'youtube', 'video-script'],
+          modelPreference: modelPref,
+          baseUrl: utmBaseUrl,
         }),
       });
 
@@ -113,10 +118,21 @@ export default function CreateContentPage() {
         qualityBreakdown: r.qualityBreakdown || null,
         framework: r.framework || null,
         aiReasoning: r.aiReasoning || null,
+        model: r.model || 'gpt-4.1-mini',
+        utmLink: r.utmLink || null,
         status: 'draft' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }));
+
+      // Save UTM links
+      const utmLinksToSave = data.results.filter((r: any) => r.utmLink).map((r: any) => ({
+        ...r.utmLink,
+        projectId: '',
+        pieceId: '',
+        createdAt: new Date().toISOString(),
+      }));
+      if (utmLinksToSave.length > 0) saveUTMLinks(utmLinksToSave);
 
       const newProject: ContentProject = {
         id: uuidv4(), userId: user?.id || '', title: topic.slice(0, 100),
@@ -388,12 +404,17 @@ export default function CreateContentPage() {
 
           return (
             <div key={result.platform} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setExpandedPlatform(isExpanded ? null : result.platform)}>
+                <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setExpandedPlatform(isExpanded ? null : result.platform)}>
                 <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center border', platformColors[result.platform] || 'bg-gray-50 text-gray-600 border-gray-200')}><Icon size={18} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-gray-900 text-sm">{platformInfo?.label || result.platform}</h3>
                     {frameworkLabel && <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full hidden sm:inline">{frameworkLabel}</span>}
+                    {result.model && MODEL_LABELS[result.model as AIModel] && (
+                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium hidden sm:inline-flex items-center gap-1', MODEL_LABELS[result.model as AIModel].color)}>
+                        <Cpu size={8} />{MODEL_LABELS[result.model as AIModel].badge}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 truncate">{result.content?.slice(0, 80)}...</p>
                 </div>
@@ -424,6 +445,23 @@ export default function CreateContentPage() {
 
                       {(showScoreDetail === result.platform || result.aiReasoning) && (
                         <ScoreBreakdown breakdown={result.qualityBreakdown} reasoning={result.aiReasoning} />
+                      )}
+
+                      {/* UTM Link */}
+                      {result.utmLink && (
+                        <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Link2 size={12} className="text-blue-600" />
+                            <span className="text-[10px] font-semibold text-blue-700 uppercase">UTM Tracking Link</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <code className="text-[11px] text-blue-800 bg-blue-100/50 px-2 py-1 rounded-lg truncate block flex-1 font-mono">{result.utmLink.fullUrl}</code>
+                            <button onClick={(e) => { e.stopPropagation(); handleCopy(result.utmLink.fullUrl, result.platform + '-utm'); }} className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
+                              {copiedPlatform === result.platform + '-utm' ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy UTM</>}
+                            </button>
+                          </div>
+                          <p className="text-[9px] text-blue-500 mt-1">Source: {result.utmLink.utmParams?.source} | Medium: {result.utmLink.utmParams?.medium} | Campaign: {result.utmLink.utmParams?.campaign}</p>
+                        </div>
                       )}
 
                       <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mt-3">

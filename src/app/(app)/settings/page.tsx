@@ -6,11 +6,13 @@ import Link from 'next/link';
 import {
   User, Building2, Users, CreditCard, Key, Mic2,
   Save, Check, ExternalLink, Lock, Plus, Trash2,
-  ChevronRight, AlertCircle, Shield,
+  ChevronRight, AlertCircle, Shield, Cpu, Link2,
 } from 'lucide-react';
+import { getUser, saveUser } from '@/lib/storage';
+import { ModelPreference, MODEL_LABELS, PLATFORM_MODEL_MAP, AIModel } from '@/types';
 import { cn } from '@/lib/utils';
 
-type Tab = 'account' | 'team' | 'billing' | 'integrations' | 'voice';
+type Tab = 'account' | 'team' | 'billing' | 'integrations' | 'ai-model' | 'voice';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth();
@@ -24,6 +26,19 @@ export default function SettingsPage() {
   const [industry, setIndustry] = useState(user?.industry || '');
   const [targetAudience, setTargetAudience] = useState(user?.targetAudience || '');
   const [websiteUrl, setWebsiteUrl] = useState(user?.websiteUrl || '');
+
+  // AI Model preferences
+  const [modelPreference, setModelPreference] = useState<ModelPreference>('auto');
+  const [utmBaseUrl, setUtmBaseUrl] = useState('');
+  const [modelSaved, setModelSaved] = useState(false);
+
+  useEffect(() => {
+    const storedUser = getUser();
+    if (storedUser) {
+      setModelPreference((storedUser.modelPreference as ModelPreference) || 'auto');
+      setUtmBaseUrl(storedUser.defaultUtmBaseUrl || storedUser.websiteUrl || '');
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -42,11 +57,21 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleSaveModelPrefs = () => {
+    const storedUser = getUser();
+    if (storedUser) {
+      saveUser({ ...storedUser, modelPreference, defaultUtmBaseUrl: utmBaseUrl });
+    }
+    setModelSaved(true);
+    setTimeout(() => setModelSaved(false), 2000);
+  };
+
   const TABS: { key: Tab; label: string; icon: any }[] = [
     { key: 'account', label: 'Account', icon: User },
     { key: 'team', label: 'Team Members', icon: Users },
     { key: 'billing', label: 'Billing', icon: CreditCard },
     { key: 'integrations', label: 'Integrations', icon: Key },
+    { key: 'ai-model', label: 'AI Model', icon: Cpu },
     { key: 'voice', label: 'Brand Voice', icon: Mic2 },
   ];
 
@@ -271,6 +296,83 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* AI Model */}
+          {activeTab === 'ai-model' && (
+            <div className="card p-6 lg:p-8 space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-1">AI Model Preferences</h2>
+                <p className="text-sm text-slate-500">Choose which AI model powers your content generation.</p>
+              </div>
+
+              {/* Model Selection */}
+              <div>
+                <label className="label mb-3">Preferred AI Model</label>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { key: 'auto' as ModelPreference, label: 'Auto (Recommended)', desc: 'Best model per platform', badge: 'Smart', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200' },
+                    { key: 'gpt' as ModelPreference, label: 'Always GPT-4.1 Mini', desc: 'Fast, punchy, short-form', badge: 'GPT', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    { key: 'claude' as ModelPreference, label: 'Always Gemini 2.5 Flash', desc: 'Nuanced, voice-matched, long-form', badge: 'Gemini', badgeColor: 'bg-violet-50 text-violet-700 border-violet-200' },
+                  ].map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setModelPreference(opt.key)}
+                      className={cn(
+                        'p-4 rounded-xl border-2 text-left transition-all',
+                        modelPreference === opt.key
+                          ? 'border-brand-500 bg-brand-50/50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-semibold', opt.badgeColor)}>{opt.badge}</span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900">{opt.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Auto Mode Explanation */}
+              {modelPreference === 'auto' && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-blue-700 mb-2">Auto Mode: Best Model Per Platform</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {Object.entries(PLATFORM_MODEL_MAP).map(([platform, model]) => (
+                      <div key={platform} className="bg-white/70 rounded-lg px-3 py-2">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase">{platform.replace('-', ' ')}</p>
+                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded border font-medium mt-1 inline-block', MODEL_LABELS[model as AIModel].color)}>
+                          {MODEL_LABELS[model as AIModel].badge}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-blue-600 mt-2">GPT-4.1 Mini for short-form speed. Gemini 2.5 Flash for long-form nuance and voice matching.</p>
+                </div>
+              )}
+
+              {/* UTM Base URL */}
+              <div className="pt-4 border-t border-slate-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <Link2 size={14} className="text-slate-500" />
+                  <label className="label mb-0">Default UTM Base URL</label>
+                </div>
+                <p className="text-xs text-slate-500 mb-3">This URL is used as the base for all auto-generated UTM tracking links.</p>
+                <input
+                  type="url"
+                  value={utmBaseUrl}
+                  onChange={e => setUtmBaseUrl(e.target.value)}
+                  className="input-field"
+                  placeholder="https://yoursite.com"
+                />
+              </div>
+
+              <button onClick={handleSaveModelPrefs} className="btn-primary gap-2">
+                {modelSaved ? <><Check size={16} /> Saved</> : <><Save size={16} /> Save Preferences</>}
+              </button>
             </div>
           )}
 
