@@ -262,16 +262,34 @@ function generateUTM(platform: string, topic: string, pieceId: string, baseUrl: 
 
 // ─── CONTEXT BUILDERS ────────────────────────────────────────
 function buildVoiceDNAContext(voiceDNA: any): string {
-  if (!voiceDNA?.brandName) return '';
-  return `
-BRAND VOICE DNA:
+  if (!voiceDNA) return '';
+  // Handle both manual (brandName-based) and AI-analyzed voice DNA formats
+  if (voiceDNA.brandName) {
+    return `
+BRAND VOICE DNA (USER-DEFINED):
 - Brand: ${voiceDNA.brandName}
-- Voice: ${voiceDNA.voiceDescriptors || 'Not set'}
+- Voice Descriptors: ${voiceDNA.voiceDescriptors || 'Not set'}
 - Style Reference: ${voiceDNA.writingStyleReference || 'Not set'}
-- Phrases to USE: ${(voiceDNA.phrasesTheyUse || []).map((p: string) => `"${p}"`).join(', ') || 'None set'}
+- Phrases to USE in content: ${(voiceDNA.phrasesTheyUse || []).map((p: string) => `"${p}"`).join(', ') || 'None set'}
 - Phrases to NEVER USE: ${(voiceDNA.phrasesTheyNeverUse || []).map((p: string) => `"${p}"`).join(', ') || 'None set'}
 - Target Audience: ${voiceDNA.targetAudienceDescription || 'Not set'}
-- Audience Pain Points: ${voiceDNA.audiencePainPoints || 'Not set'}`;
+- Audience Pain Points: ${voiceDNA.audiencePainPoints || 'Not set'}
+
+CRITICAL: Generated content MUST use the phrases listed above and NEVER use the banned phrases. Match the voice descriptors exactly.`;
+  }
+  // AI-analyzed format
+  if (voiceDNA.summary || voiceDNA.contentInstructions) {
+    return `
+AI-ANALYZED VOICE DNA:
+- Summary: ${voiceDNA.summary || ''}
+- Energy: ${voiceDNA.energySignature || ''}
+- Sentence Structure: ${voiceDNA.sentenceStructure || ''}
+- Opening Patterns: ${(voiceDNA.openingPatterns || []).join(' | ')}
+- Signature Moves: ${(voiceDNA.signatureMoves || []).join(' | ')}
+- Forbidden: ${(voiceDNA.forbiddenPatterns || []).join(', ')}
+${voiceDNA.contentInstructions ? `\nGENERATION INSTRUCTIONS (MANDATORY):\n${voiceDNA.contentInstructions}` : ''}`;
+  }
+  return '';
 }
 
 function buildExamplesContext(examples: any[]): string {
@@ -312,12 +330,20 @@ BRAND INTELLIGENCE PROFILE:
 - Authority Markers: ${(brandProfile.authorityMarkers || []).join('; ')}
 - Content Angles: ${(brandProfile.contentAngles || []).slice(0, 5).join('; ')}
 ${brandProfile.voiceDNA ? `
-VOICE DNA (legacy):
-- Style: ${brandProfile.voiceDNA.summary || ''}
-- Energy: ${brandProfile.voiceDNA.energySignature || 'Professional'}
-- Vocabulary: ${brandProfile.voiceDNA.vocabularyLevel || 'Conversational'}
-- Forbidden: ${(brandProfile.voiceDNA.forbiddenPatterns || []).join(', ')}
-- Signature Moves: ${(brandProfile.voiceDNA.signatureMoves || []).join(', ')}` : ''}
+VOICE DNA (CRITICAL — this defines how the content MUST sound):
+- Voice Summary: ${brandProfile.voiceDNA.summary || ''}
+- Energy Signature: ${brandProfile.voiceDNA.energySignature || 'Professional'}
+- Vocabulary Level: ${brandProfile.voiceDNA.vocabularyLevel || 'Conversational'}
+- Sentence Structure: ${brandProfile.voiceDNA.sentenceStructure || ''}
+- Reasoning Style: ${brandProfile.voiceDNA.reasoningStyle || ''}
+- Emotional Range: ${brandProfile.voiceDNA.emotionalRange || ''}
+- Tone: ${(brandProfile.voiceDNA.toneDescriptors || []).join(', ')}
+- Opening Patterns (USE THESE): ${(brandProfile.voiceDNA.openingPatterns || []).join(' | ')}
+- Signature Moves (USE THESE): ${(brandProfile.voiceDNA.signatureMoves || []).join(' | ')}
+- Forbidden Patterns (NEVER USE): ${(brandProfile.voiceDNA.forbiddenPatterns || []).join(', ')}
+${brandProfile.voiceDNA.contentInstructions ? `
+CONTENT GENERATION INSTRUCTIONS (MANDATORY):
+${brandProfile.voiceDNA.contentInstructions}` : ''}` : ''}
 ${brandProfile.objectionMap?.length ? `
 OBJECTION MAP:
 ${brandProfile.objectionMap.map((o: any) => `- "${o.objection}" -> "${o.reframe}"`).join('\n')}` : ''}`;
