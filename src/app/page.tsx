@@ -6,6 +6,7 @@ import {
   Share2, TrendingUp, Shield, Clock, ChevronRight, Play,
   Mail, FileText, Video,
   Users, DollarSign, Target, Brain, Sparkles, Globe, Hash, AtSign, Camera,
+  Layers, Repeat, BarChart, Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +20,7 @@ const FEATURES = [
   {
     icon: PenTool,
     title: 'Autonomous Production Engine',
-    description: 'One input generates 7 platform-optimized outputs. Built on 12 proven copywriting frameworks — PAS, AIDA, Story-Lesson-Action, and more.',
+    description: 'One input generates 7 platform-optimized outputs. Built on 12 proven copywriting frameworks: PAS, AIDA, Story-Lesson-Action, and more.',
     color: 'bg-blue-50 text-blue-600',
   },
   {
@@ -52,24 +53,24 @@ const PLATFORMS_OUTPUT = [
   { icon: Video, label: 'Video Scripts', color: '#8B5CF6' },
 ];
 
-const TESTIMONIALS = [
+const RESULTS = [
   {
-    quote: "Content Factory replaced our $4,500/month agency. In the first 60 days, we attributed $180K in pipeline directly to content it generated. The ROI is absurd.",
-    name: "Sarah Chen",
-    title: "CEO, Meridian Consulting",
-    metric: "$180K pipeline in 60 days",
+    icon: Clock,
+    metric: '15 min/week',
+    label: 'Average time to review and publish',
+    description: 'One input produces 7 platform-ready outputs. Review, tweak, and publish in a single sitting instead of spending hours writing from scratch.',
   },
   {
-    quote: "I was spending 12 hours a week on content with zero way to measure results. Now I spend 15 minutes reviewing AI-generated content that actually sounds like me.",
-    name: "Marcus Rivera",
-    title: "Founder, Atlas Advisory Group",
-    metric: "12hrs to 15min per week",
+    icon: Layers,
+    metric: '7 platforms',
+    label: 'Simultaneous output channels',
+    description: 'Every piece of content is automatically adapted for Twitter, LinkedIn, Instagram, email, blog, YouTube, and video scripts.',
   },
   {
-    quote: "The revenue attribution alone is worth 10x the price. For the first time, I can see exactly which LinkedIn post led to a $45K deal. No other tool does this.",
-    name: "Jennifer Walsh",
-    title: "Managing Partner, Apex Strategy",
-    metric: "$45K deal attributed to one post",
+    icon: BarChart,
+    metric: 'Full attribution',
+    label: 'Content to revenue tracking',
+    description: 'Smart links and CRM integration map every click, lead, and closed deal back to the content that generated it.',
   },
 ];
 
@@ -94,13 +95,13 @@ export default function LandingPage() {
               <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
                 <Zap className="text-white" size={18} />
               </div>
-              <span className="text-lg font-bold text-slate-900 tracking-tight">Content Factory</span>
+              <span className="text-lg font-bold text-slate-900 tracking-tight">PRESS</span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Features</a>
               <a href="#how-it-works" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">How It Works</a>
               <a href="#pricing" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
-              <a href="#testimonials" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Results</a>
+              <a href="#results" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">Results</a>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/login" className="btn-ghost hidden sm:inline-flex">Sign In</Link>
@@ -121,7 +122,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-sm font-medium mb-6">
             <Sparkles size={14} />
-            The Growth Operating System
+            The Content Revenue Engine
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 tracking-tight leading-[1.1] mb-6 text-balance">
@@ -146,7 +147,7 @@ export default function LandingPage() {
           </div>
 
           {/* Platform output preview */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {PLATFORMS_OUTPUT.map((p, i) => (
               <div
                 key={i}
@@ -157,38 +158,6 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-
-          {/* Social proof bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-slate-500">
-            <div className="flex items-center gap-1.5">
-              <div className="flex -space-x-1.5">
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white" />
-                ))}
-              </div>
-              <span className="ml-1">500+ B2B companies</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {[1,2,3,4,5].map(i => (
-                <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
-              ))}
-              <span className="ml-1">4.9/5 average rating</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Logos */}
-      <section className="py-12 border-y border-slate-100 bg-slate-50/50">
-        <div className="max-w-5xl mx-auto px-4">
-          <p className="text-center text-sm text-slate-400 font-medium mb-6 uppercase tracking-wider">
-            Trusted by growth-focused B2B companies
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 opacity-40">
-            {['Meridian', 'Atlas Group', 'Apex Strategy', 'Pinnacle', 'Vertex', 'Summit'].map(name => (
-              <span key={name} className="text-xl font-bold text-slate-900 tracking-tight">{name}</span>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -196,13 +165,13 @@ export default function LandingPage() {
       <section className="py-20 lg:py-28 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <div className="badge-danger mb-4 inline-flex">The $15 Billion Problem</div>
+            <div className="badge-danger mb-4 inline-flex">The Content Problem</div>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight mb-4">
               You&apos;re spending on content with zero proof it works
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              68% of marketers cannot attribute revenue to their content. You&apos;re either overpaying an agency, 
-              burning hours on generic AI tools, or doing nothing — and leaving pipeline on the table.
+              Most businesses cannot attribute revenue to their content. You are either overpaying an agency, 
+              burning hours on generic AI tools, or doing nothing and leaving pipeline on the table.
             </p>
           </div>
 
@@ -234,7 +203,7 @@ export default function LandingPage() {
               Not a content tool. A revenue machine.
             </h2>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-              Five interconnected subsystems that each deliver standalone value — and become exponentially 
+              Five interconnected subsystems that each deliver standalone value, and become exponentially 
               more powerful when connected.
             </p>
           </div>
@@ -278,7 +247,7 @@ export default function LandingPage() {
               {
                 step: '03',
                 title: 'Review, edit, publish',
-                description: 'Each piece gets a quality score. Edit inline, regenerate any output, or approve and schedule. Total time: 12 minutes per week.',
+                description: 'Each piece gets a quality score. Edit inline, regenerate any output, or approve and schedule. Total time: about 15 minutes per week.',
               },
               {
                 step: '04',
@@ -300,39 +269,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 lg:py-28 px-4 bg-slate-50/50">
+      {/* Results */}
+      <section id="results" className="py-20 lg:py-28 px-4 bg-slate-50/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <div className="badge-success mb-4 inline-flex">Real Results</div>
+            <div className="badge-success mb-4 inline-flex">Results</div>
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight mb-4">
-              The numbers speak for themselves
+              What PRESS delivers
             </h2>
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              Built to replace your content agency, your scattered tool stack, and the hours you spend writing every week.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t, i) => (
+            {RESULTS.map((r, i) => (
               <div key={i} className="card p-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[1,2,3,4,5].map(s => (
-                    <Star key={s} size={14} className="text-amber-400 fill-amber-400" />
-                  ))}
+                <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center mb-4">
+                  <r.icon size={22} className="text-brand-600" />
                 </div>
-                <p className="text-slate-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm">
-                      {t.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{t.name}</p>
-                      <p className="text-xs text-slate-500">{t.title}</p>
-                    </div>
-                  </div>
-                  <div className="badge-success text-xs">{t.metric}</div>
-                </div>
+                <p className="text-3xl font-bold text-slate-900 mb-1">{r.metric}</p>
+                <p className="text-sm font-semibold text-brand-700 mb-3">{r.label}</p>
+                <p className="text-sm text-slate-500 leading-relaxed">{r.description}</p>
               </div>
             ))}
+          </div>
+
+          <div className="mt-12 card p-8 text-center">
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">Built for B2B revenue teams</h3>
+            <p className="text-slate-500 max-w-2xl mx-auto leading-relaxed">
+              PRESS combines voice cloning, multi-platform publishing, and revenue attribution into one system.
+              Every output is tied to your brand voice. Every click is tracked to pipeline. No guesswork.
+            </p>
           </div>
         </div>
       </section>
@@ -342,7 +310,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight mb-4">
-              Content Factory vs. the alternatives
+              PRESS vs. the alternatives
             </h2>
           </div>
 
@@ -352,7 +320,7 @@ export default function LandingPage() {
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-4 px-6 text-sm font-medium text-slate-500">Feature</th>
-                    <th className="text-center py-4 px-4 text-sm font-semibold text-brand-700 bg-brand-50/50">Content Factory</th>
+                    <th className="text-center py-4 px-4 text-sm font-semibold text-brand-700 bg-brand-50/50">PRESS</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-slate-500">Agency</th>
                     <th className="text-center py-4 px-4 text-sm font-medium text-slate-500">Tool Stack</th>
                   </tr>
@@ -363,21 +331,21 @@ export default function LandingPage() {
                       <td className="py-3.5 px-6 text-sm text-slate-700 font-medium">{row.feature}</td>
                       <td className="py-3.5 px-4 text-center bg-brand-50/30">
                         {typeof row.us === 'boolean' ? (
-                          row.us ? <Check size={18} className="text-brand-600 mx-auto" /> : <span className="text-slate-300">—</span>
+                          row.us ? <Check size={18} className="text-brand-600 mx-auto" /> : <span className="text-slate-300">-</span>
                         ) : (
                           <span className="text-sm font-semibold text-brand-700">{row.us}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {typeof row.agency === 'boolean' ? (
-                          row.agency ? <Check size={18} className="text-slate-400 mx-auto" /> : <span className="text-slate-300">—</span>
+                          row.agency ? <Check size={18} className="text-slate-400 mx-auto" /> : <span className="text-slate-300">-</span>
                         ) : (
                           <span className="text-sm text-slate-500">{row.agency}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {typeof row.tools === 'boolean' ? (
-                          row.tools ? <Check size={18} className="text-slate-400 mx-auto" /> : <span className="text-slate-300">—</span>
+                          row.tools ? <Check size={18} className="text-slate-400 mx-auto" /> : <span className="text-slate-300">-</span>
                         ) : (
                           <span className="text-sm text-slate-500">{row.tools}</span>
                         )}
@@ -400,13 +368,13 @@ export default function LandingPage() {
               One plan. Everything included.
             </h2>
             <p className="text-lg text-slate-500">
-              No tiers, no hidden fees, no credit limits. The full Growth Operating System.
+              No tiers, no hidden fees, no credit limits. The full content revenue engine.
             </p>
           </div>
 
           <div className="card p-8 lg:p-10 max-w-xl mx-auto border-brand-200 shadow-glow">
             <div className="text-center mb-8">
-              <div className="badge-brand mb-4 inline-flex">Most Popular</div>
+              <div className="badge-brand mb-4 inline-flex">Full Access</div>
               <div className="flex items-baseline justify-center gap-1 mb-2">
                 <span className="text-5xl font-bold text-slate-900">$900</span>
                 <span className="text-slate-500">/month</span>
@@ -445,30 +413,6 @@ export default function LandingPage() {
               No credit card required for trial
             </p>
           </div>
-
-          {/* ROI Math */}
-          <div className="mt-12 card p-6 lg:p-8">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4 text-center">
-              The ROI Math: Why $900/month is a no-brainer
-            </h3>
-            <div className="grid sm:grid-cols-3 gap-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-brand-700">0.72</p>
-                <p className="text-sm text-slate-500 mt-1">Leads/month to break even</p>
-                <p className="text-xs text-slate-400 mt-0.5">At $5K avg deal size</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-brand-700">900%</p>
-                <p className="text-sm text-slate-500 mt-1">Average annual ROI</p>
-                <p className="text-xs text-slate-400 mt-0.5">At 3 leads/month</p>
-              </div>
-              <div className="text-center">
-                <p className="text-3xl font-bold text-brand-700">$97K</p>
-                <p className="text-sm text-slate-500 mt-1">Annual profit from platform</p>
-                <p className="text-xs text-slate-400 mt-0.5">At $10K avg deal size</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -482,7 +426,7 @@ export default function LandingPage() {
                 Stop creating content that can&apos;t prove its value
               </h2>
               <p className="text-white/80 text-lg max-w-xl mx-auto mb-8">
-                Join 500+ B2B companies using Content Factory to turn expertise into measurable pipeline. 
+                PRESS turns your expertise into measurable pipeline. 
                 Your first content is ready in 10 minutes.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -508,7 +452,7 @@ export default function LandingPage() {
               <div className="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center">
                 <Zap className="text-white" size={14} />
               </div>
-              <span className="font-bold text-slate-900">Content Factory</span>
+              <span className="font-bold text-slate-900">PRESS</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <a href="#" className="hover:text-slate-900 transition-colors">Privacy</a>
@@ -516,7 +460,7 @@ export default function LandingPage() {
               <a href="#" className="hover:text-slate-900 transition-colors">Contact</a>
             </div>
             <p className="text-sm text-slate-400">
-              &copy; 2026 Content Factory. All rights reserved.
+              &copy; 2026 PRESS by ELIOS. All rights reserved.
             </p>
           </div>
         </div>
