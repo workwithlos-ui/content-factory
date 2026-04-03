@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { fetchSharedContext, formatContextForPrompt } from '@/lib/shared-context';
 
 const client = new OpenAI();
 
@@ -387,13 +388,21 @@ export async function POST(req: NextRequest) {
     const userModelPref = modelPreference || 'auto';
     const utmBaseUrl = baseUrl || 'https://example.com';
 
-    // Build full context
+    // Fetch shared context from Supabase (proof bank, ICPs, voice, offers)
+    const sharedCtx = await fetchSharedContext();
+    const sharedContextBlock = sharedCtx ? `
+=== ELIOS SHARED INTELLIGENCE (proof bank, ICPs, offers, voice baseline) ===
+${formatContextForPrompt(sharedCtx)}
+=== END SHARED INTELLIGENCE ===
+` : '';
+
+    // Build full context — user's localStorage data overrides shared context
     const voiceDNAContext = buildVoiceDNAContext(voiceDNA);
     const examplesContext = buildExamplesContext(examples);
     const audienceContext = buildAudienceContext(audienceProfile);
     const brandContext = buildBrandContext(profileData);
 
-    const fullContext = [voiceDNAContext, examplesContext, audienceContext, brandContext].filter(Boolean).join('\n');
+    const fullContext = [sharedContextBlock, voiceDNAContext, examplesContext, audienceContext, brandContext].filter(Boolean).join('\n');
 
     // Framework instruction
     const frameworkKey = creatorFramework || 'auto';
