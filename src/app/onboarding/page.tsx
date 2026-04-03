@@ -258,17 +258,26 @@ export default function OnboardingPage() {
       }
 
       // COMMAND 1: Brand Intelligence Extractor
-      const res = await fetch('/api/extract-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: { ...answers, contentSamples: samples.filter(s => s.trim()) },
-          company,
-          industry,
-          targetAudience,
-        }),
-      });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        const res = await fetch('/api/extract-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answers: { ...answers, contentSamples: samples.filter(s => s.trim()) },
+            company,
+            industry,
+            targetAudience,
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          console.error('Profile extraction API failed:', res.status);
+        }
+      } catch (fetchErr) {
+        console.error('Profile extraction fetch failed:', fetchErr);
+      }
 
       if (data.profile) {
         const profile: BrandIntelligenceProfile = {
